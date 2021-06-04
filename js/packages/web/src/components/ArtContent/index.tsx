@@ -34,28 +34,14 @@ export const ArtContent = ({
 
   const playerRef = useCallback(
     ref => {
-      debugger;
       setPlayerApi(ref);
     },
     [setPlayerApi],
   );
 
   useEffect(() => {
-    debugger;
     if (playerApi) {
       playerApi.currentTime = 0;
-
-      if (active === undefined) {
-        playerApi.muted = true;
-        playerApi?.play();
-      } else {
-        if (active) {
-          playerApi.muted = false;
-          playerApi.play();
-        } else {
-          playerApi.pause();
-        }
-      }
     }
   }, [active, playerApi]);
 
@@ -81,6 +67,8 @@ export const ArtContent = ({
             videoHeight: 700,
             videoWidth: 400,
           }}
+          autoplay={true}
+          muted={true}
         />
       </div>
     ) : (
