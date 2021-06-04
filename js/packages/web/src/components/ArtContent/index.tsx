@@ -34,12 +34,14 @@ export const ArtContent = ({
 
   const playerRef = useCallback(
     ref => {
+      debugger;
       setPlayerApi(ref);
     },
     [setPlayerApi],
   );
 
   useEffect(() => {
+    debugger;
     if (playerApi) {
       playerApi.currentTime = 0;
 
@@ -69,7 +71,7 @@ export const ArtContent = ({
     likelyVideo.startsWith('https://watch.videodelivery.net/') ? (
       <div className={`${className} square`}>
         <Stream
-          streamRef={playerRef}
+          streamRef={(e: any) => playerRef(e)}
           src={likelyVideo.replace('https://watch.videodelivery.net/', '')}
           loop={true}
           height={600}

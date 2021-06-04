@@ -40,8 +40,7 @@ export const HomeView = () => {
     [auctions],
   );
 
-  const liveAuctions = auctions
-  .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0);
+  const liveAuctions = auctions;
 
   const liveAuctionsView = (
     <Masonry

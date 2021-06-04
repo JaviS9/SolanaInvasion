@@ -29,6 +29,7 @@ import {
   useConnectionConfig,
 } from '@oyster/common';
 import { MintInfo, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import artOrder from './../config/art-order.json';
 import {
   NAME_PROGRAM_ID,
   VERIFICATION_AUTHORITY_OFFSET,
@@ -459,7 +460,12 @@ export function MetaProvider({ children = null as any }) {
               whitelistedCreatorsByCreator[c.address.toBase58()]?.info
                 ?.activated),
         ),
-      ),
+      ).sort((a, b) => {
+
+        const aIndex = Number((artOrder as any)[a.pubkey.toBase58()] || '0');
+        const bIndex = Number((artOrder as any)[b.pubkey.toBase58()] || '0');
+        return aIndex - bIndex;
+      }),
     [metadata, store, whitelistedCreatorsByCreator],
   );
 
