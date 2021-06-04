@@ -97,9 +97,6 @@ export const HomeView = () => {
           All proceeds from the auction will be donated to <a href="https://giveindia.org">GiveIndia</a> supporting COVID relief efforts.
         </p>
       </Row>
-      <Row className="header">
-        <img src={powered} className="powered-by" alt="logo" />
-      </Row>
       <PreSaleBanner auction={heroAuction} />
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -125,6 +122,9 @@ export const HomeView = () => {
             </Row>
           </Col>
         </Content>
+      <Row className="header">
+        <img src={powered} className="powered-by" alt="logo" />
+      </Row>
       </Layout>
     </Layout>
   );
