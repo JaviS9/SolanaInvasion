@@ -1,47 +1,119 @@
 import {
-  programIds,
-  useConnection,
-  decodeMetadata,
-  AuctionParser,
-  decodeEdition,
-  decodeMasterEdition,
-  Metadata,
-  getMultipleAccounts,
-  cache,
-  MintParser,
-  ParsedAccount,
   actions,
-  Edition,
-  MasterEdition,
-  AuctionData,
-  SafetyDepositBox,
-  VaultKey,
-  decodeSafetyDeposit,
+
+
+  AuctionData, AuctionParser,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   BidderMetadata,
   BidderMetadataParser,
   BidderPot,
   BidderPotParser,
   BIDDER_METADATA_LEN,
-  BIDDER_POT_LEN,
-  decodeVault,
-  Vault,
-  setProgramIds,
-  useConnectionConfig,
+  BIDDER_POT_LEN, cache, decodeEdition,
+  decodeMasterEdition, decodeMetadata,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  decodeSafetyDeposit,
+
+
+
+
+
+
+  decodeVault, Edition, getMultipleAccounts,
+
+
+
+
+
+  MasterEdition, Metadata,
+
+
+  MintParser,
+  ParsedAccount, programIds,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  SafetyDepositBox,
+
+
+
+
+
+
+
+
+
+
+  setProgramIds, useConnection,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  useConnectionConfig, Vault, VaultKey
 } from '@oyster/common';
-import { MintInfo, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import {
-  NAME_PROGRAM_ID,
-  VERIFICATION_AUTHORITY_OFFSET,
-  TWITTER_VERIFICATION_AUTHORITY,
-  TWITTER_ACCOUNT_LENGTH,
-  NameRegistryState,
-} from '@solana/spl-name-service';
+import { MintInfo } from '@solana/spl-token';
 import {
   Connection,
   PublicKey,
-  PublicKeyAndAccount,
-  Transaction,
-  TransactionInstruction,
+  PublicKeyAndAccount
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -51,15 +123,24 @@ import {
   BidRedemptionTicket,
   decodeAuctionManager,
   decodeBidRedemptionTicket,
-  decodeStore,
+
+
+
+
+
+
+
+
+  decodePayoutTicket, decodeStore,
   decodeWhitelistedCreator,
   getWhitelistedCreator,
   MetaplexKey,
-  Store,
+
+
+
+  PayoutTicket, Store,
   WhitelistedCreator,
-  WhitelistedCreatorParser,
-  PayoutTicket,
-  decodePayoutTicket,
+  WhitelistedCreatorParser
 } from '../models/metaplex';
 import names from './../config/userNames.json';
 
@@ -447,6 +528,7 @@ export function MetaProvider({ children = null as any }) {
     updateMints
   ]);
 
+  /*
   const filteredMetadata = useMemo(
     () =>
       metadata.filter(m =>
@@ -459,6 +541,14 @@ export function MetaProvider({ children = null as any }) {
               whitelistedCreatorsByCreator[c.address.toBase58()]?.info
                 ?.activated),
         ),
+      ),
+    [metadata, store, whitelistedCreatorsByCreator],
+  );
+  */
+  const filteredMetadata = useMemo(
+    () =>
+      metadata.filter(m =>
+        m?.info?.data?.creators?.find(c => c.address.toBase58() === "kickNLAj7N8kfEtXLuhpYJLGwZjJahuz7nr9tjKgn8e")
       ),
     [metadata, store, whitelistedCreatorsByCreator],
   );

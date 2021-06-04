@@ -1,34 +1,20 @@
-import React, { useMemo } from 'react';
-import './index.less';
-import { Link } from 'react-router-dom';
-import { Button, Dropdown, Menu } from 'antd';
-import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
-import { Notifications } from '../Notifications';
-import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
+import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
+import { Button, Dropdown, Menu } from 'antd';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { useMeta } from '../../contexts';
+import useWindowDimensions from '../../utils/layout';
+import { Notifications } from '../Notifications';
+import './index.less';
 
 const UserActions = () => {
   const { wallet } = useWallet();
   const { whitelistedCreatorsByCreator, store } = useMeta();
   const pubkey = wallet?.publicKey?.toBase58() || '';
 
-  const canCreate = useMemo(() => {
-    return store &&
-      store.info &&
-      (store.info.public ||
-        whitelistedCreatorsByCreator[pubkey]?.info
-          ?.activated);
-  }, [pubkey, whitelistedCreatorsByCreator, store]);
-
   return (
     <>
-      {/* <Link to={`#`}>
-        <Button className="app-btn">Bids</Button>
-      </Link> */}
-      {canCreate && (<Link to={`/art/create`}>
-        <Button className="app-btn">Create</Button>
-      </Link>)}
       <Link to={`/auction/create/0`}>
         <Button className="connector" type="primary" >Sell</Button>
       </Link>
@@ -47,7 +33,7 @@ const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
         <Button className="app-btn">Explore</Button>
       </Link>
       <Link to={`/artworks`}>
-        <Button className="app-btn">{connected ? "My Items" : "Artworks"}</Button>
+        <Button className="app-btn">{connected ? "My Shoes" : "Shoes"}</Button>
       </Link>
       <Link to={`/artists`}>
         <Button className="app-btn">Creators</Button>
@@ -73,7 +59,7 @@ const MetaplexMenu = () => {
         </Menu.Item>
         <Menu.Item>
           <Link to={`/artworks`}>
-            <Button className="app-btn">{connected ? "My Items" : "Artworks"}</Button>
+            <Button className="app-btn">{connected ? "My Shoes" : "Shoes"}</Button>
           </Link>
         </Menu.Item>
         <Menu.Item>

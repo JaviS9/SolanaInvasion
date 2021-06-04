@@ -1,37 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { Row, Col, Button, InputNumber, Spin } from 'antd';
-import { MemoryRouter, Route, Redirect, Link } from 'react-router-dom';
-
-import './index.less';
 import {
-  useConnection,
-  useUserAccounts,
   contexts,
-  MetaplexModal,
-  MetaplexOverlay,
+
+
   formatAmount,
-  formatTokenAmount,
-  useMint,
-  fromLamports,
-  CountdownState,
+  formatTokenAmount, MetaplexModal,
+  MetaplexOverlay, useConnection,
+
+
+
+
+
+
+  useMint, useUserAccounts
 } from '@oyster/common';
+import { Button, Col, InputNumber, Spin } from 'antd';
+import BN from 'bn.js';
+import React, { useState } from 'react';
+import { Link, MemoryRouter, Redirect, Route } from 'react-router-dom';
+import { sendCancelBid } from '../../actions/cancelBid';
+import { sendPlaceBid } from '../../actions/sendPlaceBid';
+import {
+  eligibleForParticipationPrizeGivenWinningIndex, sendRedeemBid
+} from '../../actions/sendRedeemBid';
+import { QUOTE_MINT } from '../../constants';
 import {
   AuctionView,
-  AuctionViewState,
-  useBidsForAuction,
-  useUserBalance,
+
+
+  useUserBalance
 } from '../../hooks';
-import { sendPlaceBid } from '../../actions/sendPlaceBid';
-import { AuctionNumbers } from './../AuctionNumbers';
-import {
-  sendRedeemBid,
-  eligibleForParticipationPrizeGivenWinningIndex,
-} from '../../actions/sendRedeemBid';
-import { AmountLabel } from '../AmountLabel';
-import { sendCancelBid } from '../../actions/cancelBid';
-import BN from 'bn.js';
 import { Confetti } from '../Confetti';
-import { QUOTE_MINT } from '../../constants';
+import { AuctionNumbers } from './../AuctionNumbers';
+import './index.less';
+
 
 const { useWallet } = contexts.Wallet;
 
@@ -215,7 +216,7 @@ export const AuctionCard = ({
           }}
         >
           Your bid has been redeemed please view your NFTs in{' '}
-          <Link to="/artworks">My Items</Link>.
+          <Link to="/artworks">My Shoes</Link>.
         </p>
         <Button
           onClick={() => setShowRedeemedBidModal(false)}
