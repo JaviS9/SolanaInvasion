@@ -1,146 +1,58 @@
 import {
   actions,
-
-
-  AuctionData, AuctionParser,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  AuctionData,
+  AuctionParser,
   BidderMetadata,
   BidderMetadataParser,
   BidderPot,
   BidderPotParser,
   BIDDER_METADATA_LEN,
-  BIDDER_POT_LEN, cache, decodeEdition,
-  decodeMasterEdition, decodeMetadata,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  BIDDER_POT_LEN,
+  cache,
+  decodeEdition,
+  decodeMasterEdition,
+  decodeMetadata,
   decodeSafetyDeposit,
-
-
-
-
-
-
-  decodeVault, Edition, getMultipleAccounts,
-
-
-
-
-
-  MasterEdition, Metadata,
-
-
+  decodeVault,
+  Edition,
+  getMultipleAccounts,
+  MasterEdition,
+  Metadata,
   MintParser,
-  ParsedAccount, programIds,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  ParsedAccount,
+  programIds,
   SafetyDepositBox,
-
-
-
-
-
-
-
-
-
-
-  setProgramIds, useConnection,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  useConnectionConfig, Vault, VaultKey
+  setProgramIds,
+  useConnection,
+  useConnectionConfig,
+  Vault,
+  VaultKey,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
-import {
-  Connection,
-  PublicKey,
-  PublicKeyAndAccount
-} from '@solana/web3.js';
+import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
 import BN from 'bn.js';
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   AuctionManager,
   AuctionManagerStatus,
   BidRedemptionTicket,
   decodeAuctionManager,
   decodeBidRedemptionTicket,
-
-
-
-
-
-
-
-
-  decodePayoutTicket, decodeStore,
+  decodePayoutTicket,
+  decodeStore,
   decodeWhitelistedCreator,
   getWhitelistedCreator,
   MetaplexKey,
-
-
-
-  PayoutTicket, Store,
+  PayoutTicket,
+  Store,
   WhitelistedCreator,
-  WhitelistedCreatorParser
+  WhitelistedCreatorParser,
 } from '../models/metaplex';
 import names from './../config/userNames.json';
 
@@ -255,18 +167,18 @@ export function MetaProvider({ children = null as any }) {
     setSafetyDepositBoxesByVaultAndIndex,
   ] = useState<Record<string, ParsedAccount<SafetyDepositBox>>>({});
 
-  const updateMints = useCallback(async (metadataByMint) => {
-    try {
-      const m = await queryExtendedMetadata(
-        connection,
-        metadataByMint,
-      );
-      setMetadata(m.metadata);
-      setMetadataByMint(m.mintToMetadata);
-    } catch (er) {
-      console.error(er);
-    }
-  }, [setMetadata, setMetadataByMint]);
+  const updateMints = useCallback(
+    async metadataByMint => {
+      try {
+        const m = await queryExtendedMetadata(connection, metadataByMint);
+        setMetadata(m.metadata);
+        setMetadataByMint(m.mintToMetadata);
+      } catch (er) {
+        console.error(er);
+      }
+    },
+    [setMetadata, setMetadataByMint],
+  );
 
   useEffect(() => {
     let dispose = () => {};
@@ -525,7 +437,7 @@ export function MetaProvider({ children = null as any }) {
     setPayoutTickets,
     setStore,
     setWhitelistedCreatorsByCreator,
-    updateMints
+    updateMints,
   ]);
 
   /*
@@ -548,7 +460,11 @@ export function MetaProvider({ children = null as any }) {
   const filteredMetadata = useMemo(
     () =>
       metadata.filter(m =>
-        m?.info?.data?.creators?.find(c => c.address.toBase58() === "kickNLAj7N8kfEtXLuhpYJLGwZjJahuz7nr9tjKgn8e")
+        m?.info?.data?.creators?.find(
+          c =>
+            c.address.toBase58() ===
+            'kickNLAj7N8kfEtXLuhpYJLGwZjJahuz7nr9tjKgn8e',
+        ),
       ),
     [metadata, store, whitelistedCreatorsByCreator],
   );
@@ -738,7 +654,7 @@ const processMetaplexAccounts = async (
   setWhitelistedCreatorsByCreator: any,
 ) => {
   try {
-    const STORE_ID = programIds().store.toBase58()
+    const STORE_ID = programIds().store.toBase58();
     if (a.account.data[0] === MetaplexKey.AuctionManagerV1) {
       const storeKey = new PublicKey(a.account.data.slice(1, 33));
       if (storeKey.toBase58() === STORE_ID) {
