@@ -1,27 +1,25 @@
+import React, { useState } from 'react';
+import { Col, Button, InputNumber, Spin } from 'antd';
+import { MemoryRouter, Route, Redirect, Link } from 'react-router-dom';
+
+import './index.less';
 import {
   contexts,
-
-
   formatAmount,
-  formatTokenAmount, MetaplexModal,
-  MetaplexOverlay, useConnection,
-
-
-
-
-
-
-  useMint, useUserAccounts
+  formatTokenAmount,
+  useMint
 } from '@oyster/common';
-import { Button, Col, InputNumber, Spin } from 'antd';
-import BN from 'bn.js';
-import React, { useState } from 'react';
-import { Link, MemoryRouter, Redirect, Route } from 'react-router-dom';
-import { sendCancelBid } from '../../actions/cancelBid';
+import {
+  AuctionView,
+  useUserBalance,
+} from '../../hooks';
 import { sendPlaceBid } from '../../actions/sendPlaceBid';
 import {
   eligibleForParticipationPrizeGivenWinningIndex, sendRedeemBid
 } from '../../actions/sendRedeemBid';
+import { sendCancelBid } from '../../actions/cancelBid';
+import BN from 'bn.js';
+import { Confetti } from '../Confetti';
 import { QUOTE_MINT } from '../../constants';
 import {
   AuctionView,
@@ -263,7 +261,7 @@ export const AuctionCard = ({
               return (
                 <>
                   <h2 className="modal-title">Place a bid</h2>
-                  {gapTime && (
+                  {!!gapTime && (
                     <div
                       className="info-content"
                       style={{
