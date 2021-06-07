@@ -1,36 +1,37 @@
-import React, { useState } from 'react';
-import { Col, Button, InputNumber, Spin } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Button, InputNumber, Spin } from 'antd';
 import { MemoryRouter, Route, Redirect, Link } from 'react-router-dom';
 
 import './index.less';
 import {
+  useConnection,
+  useUserAccounts,
   contexts,
+  MetaplexModal,
+  MetaplexOverlay,
   formatAmount,
   formatTokenAmount,
-  useMint
+  useMint,
+  fromLamports,
+  CountdownState,
 } from '@oyster/common';
 import {
   AuctionView,
+  AuctionViewState,
+  useBidsForAuction,
   useUserBalance,
 } from '../../hooks';
 import { sendPlaceBid } from '../../actions/sendPlaceBid';
+import { AuctionNumbers } from './../AuctionNumbers';
 import {
-  eligibleForParticipationPrizeGivenWinningIndex, sendRedeemBid
+  sendRedeemBid,
+  eligibleForParticipationPrizeGivenWinningIndex,
 } from '../../actions/sendRedeemBid';
+import { AmountLabel } from '../AmountLabel';
 import { sendCancelBid } from '../../actions/cancelBid';
 import BN from 'bn.js';
 import { Confetti } from '../Confetti';
 import { QUOTE_MINT } from '../../constants';
-import {
-  AuctionView,
-
-
-  useUserBalance
-} from '../../hooks';
-import { Confetti } from '../Confetti';
-import { AuctionNumbers } from './../AuctionNumbers';
-import './index.less';
-
 
 const { useWallet } = contexts.Wallet;
 
@@ -261,7 +262,7 @@ export const AuctionCard = ({
               return (
                 <>
                   <h2 className="modal-title">Place a bid</h2>
-                  {!!gapTime && (
+                  {gapTime && (
                     <div
                       className="info-content"
                       style={{
@@ -296,7 +297,6 @@ export const AuctionCard = ({
                         borderRadius: 16,
                       }}
                       onChange={setValue}
-                      precision={4}
                       formatter={value =>
                         value
                           ? `◎ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
