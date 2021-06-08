@@ -35,8 +35,8 @@ const UserActions = () => {
             <Button
               className="app-btn"
               onClick={e => {
-                /*
                 e.preventDefault();
+                /*
                 (async () => {
                   await saveAdmin(connection, wallet, true, []);
                 })();

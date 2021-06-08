@@ -463,7 +463,11 @@ export function MetaProvider({ children = null as any }) {
         m?.info?.data?.creators?.find(
           c =>
             c.address.toBase58() ===
-            'kickNLAj7N8kfEtXLuhpYJLGwZjJahuz7nr9tjKgn8e',
+              'kickNLAj7N8kfEtXLuhpYJLGwZjJahuz7nr9tjKgn8e' ||
+            c.address.toBase58() ===
+              'DTjb25BnVEYJtGAWnS7typesD1rfEGUeLhLctu4MdxNS' ||
+            c.address.toBase58() ===
+              'bckupPkvbcbG7aEdfCz8PMUcAHrhNxE2z5V5Wz3CdnV',
         ),
       ),
     [metadata, store, whitelistedCreatorsByCreator],
