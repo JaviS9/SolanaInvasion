@@ -591,6 +591,8 @@ const processAuctions = (
   setBidderMetadataByAuctionAndBidder: any,
   setBidderPotsByAuctionAndBidder: any,
 ) => {
+  if (a.account.owner.toBase58() != programIds().auction.toBase58()) return;
+
   try {
     const account = cache.add(
       a.pubkey,
@@ -653,9 +655,15 @@ const processMetaplexAccounts = async (
   setStore: any,
   setWhitelistedCreatorsByCreator: any,
 ) => {
+  if (a.account.owner.toBase58() != programIds().metaplex.toBase58()) return;
+
   try {
     const STORE_ID = programIds().store.toBase58();
-    if (a.account.data[0] === MetaplexKey.AuctionManagerV1) {
+
+    if (
+      a.account.data[0] === MetaplexKey.AuctionManagerV1 ||
+      a.account.data[0] === 0
+    ) {
       const storeKey = new PublicKey(a.account.data.slice(1, 33));
       if (storeKey.toBase58() === STORE_ID) {
         const auctionManager = decodeAuctionManager(a.account.data);
@@ -712,7 +720,7 @@ const processMetaplexAccounts = async (
         whitelistedCreator.address,
       );
       if (
-        creatorKeyIfCreatorWasPartOfThisStore.toBase58() == a.pubkey.toBase58()
+        creatorKeyIfCreatorWasPartOfThisStore.toBase58() === a.pubkey.toBase58()
       ) {
         const account = cache.add(
           a.pubkey,
@@ -749,8 +757,13 @@ const processMetaData = async (
   setmasterEditionsByPrintingMint: any,
   setMasterEditionsByOneTimeAuthMint: any,
 ) => {
+  if (meta.account.owner.toBase58() != programIds().metadata.toBase58()) return;
+
   try {
-    if (meta.account.data[0] === MetadataKey.MetadataV1) {
+    if (
+      meta.account.data[0] === MetadataKey.MetadataV1 ||
+      meta.account.data[0] === 0
+    ) {
       const metadata = await decodeMetadata(meta.account.data);
 
       if (
@@ -810,6 +823,7 @@ const processVaultData = (
   setSafetyDepositBoxesByVaultAndIndex: any,
   setVaults: any,
 ) => {
+  if (a.account.owner.toBase58() != programIds().vault.toBase58()) return;
   try {
     if (a.account.data[0] === VaultKey.SafetyDepositBoxV1) {
       const safetyDeposit = decodeSafetyDeposit(a.account.data);
@@ -822,7 +836,10 @@ const processVaultData = (
         ...e,
         [safetyDeposit.vault.toBase58() + '-' + safetyDeposit.order]: account,
       }));
-    } else if (a.account.data[0] === VaultKey.VaultV1) {
+    } else if (
+      a.account.data[0] === VaultKey.VaultV1 ||
+      a.account.data[0] === 0
+    ) {
       const vault = decodeVault(a.account.data);
       const account: ParsedAccount<Vault> = {
         pubkey: a.pubkey,
