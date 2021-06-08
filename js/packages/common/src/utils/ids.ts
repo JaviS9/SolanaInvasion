@@ -5,7 +5,7 @@ export const STORE_OWNER_ADDRESS = process.env
   .REACT_APP_STORE_OWNER_ADDRESS_ADDRESS
   ? new PublicKey(`${process.env.REACT_APP_STORE_OWNER_ADDRESS_ADDRESS}`)
   : // DEFAULT STORE FRONT OWNER FOR METAPLEX
-    undefined;
+    new PublicKey('AYvZgqKRSY23J64PHNBcyrdf5CMpHVxYRrASt8cxnVBh');
 console.debug(`Store owner address: ${STORE_OWNER_ADDRESS?.toBase58()}`);
 
 export const WRAPPED_SOL_MINT = new PublicKey(
