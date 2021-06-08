@@ -12,6 +12,9 @@ import { CardLoader } from '../../components/MyLoader';
 import { useMeta } from '../../contexts';
 import BN from 'bn.js';
 
+import zodiac from './zodiactext.svg';
+import powered from './poweredby.svg';
+
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
@@ -37,9 +40,7 @@ export const HomeView = () => {
     [auctions],
   );
 
-  const liveAuctions = auctions
-  .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0)
-  .filter((m, idx) => idx < 10);
+  const liveAuctions = auctions;
 
   const liveAuctionsView = (
     <Masonry
@@ -73,10 +74,6 @@ export const HomeView = () => {
         ? auctionsEnded
             .filter((m, idx) => idx < 10)
             .map((m, idx) => {
-              if (m === heroAuction) {
-                return;
-              }
-
               const id = m.auction.pubkey.toBase58();
               return (
                 <Link to={`/auction/${id}`} key={idx}>
@@ -90,6 +87,15 @@ export const HomeView = () => {
 
   return (
     <Layout style={{ margin: 0, marginTop: 30 }}>
+      <Row className="header">
+        <img src={zodiac} className="zodiac-text" alt="logo" />
+      </Row>
+      <Row className="header">
+        <p className="subtitle">
+          Welcome to Helium Zodiac - a collection of 12 original pieces of NFT art redeemable for Helium Hotspots.
+          All proceeds from the auction will be donated to <a href="https://giveindia.org">GiveIndia</a> supporting COVID relief efforts.
+        </p>
+      </Row>
       <PreSaleBanner auction={heroAuction} />
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -115,6 +121,9 @@ export const HomeView = () => {
             </Row>
           </Col>
         </Content>
+      <Row className="header">
+        <img src={powered} className="powered-by" alt="logo" />
+      </Row>
       </Layout>
     </Layout>
   );

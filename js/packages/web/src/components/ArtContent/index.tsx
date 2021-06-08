@@ -42,18 +42,6 @@ export const ArtContent = ({
   useEffect(() => {
     if (playerApi) {
       playerApi.currentTime = 0;
-
-      if (active === undefined) {
-        playerApi.muted = true;
-        playerApi?.play();
-      } else {
-        if (active) {
-          playerApi.muted = false;
-          playerApi.play();
-        } else {
-          playerApi.pause();
-        }
-      }
     }
   }, [active, playerApi]);
 
@@ -69,7 +57,7 @@ export const ArtContent = ({
     likelyVideo.startsWith('https://watch.videodelivery.net/') ? (
       <div className={`${className} square`}>
         <Stream
-          streamRef={playerRef}
+          streamRef={(e: any) => playerRef(e)}
           src={likelyVideo.replace('https://watch.videodelivery.net/', '')}
           loop={true}
           height={600}
@@ -79,6 +67,8 @@ export const ArtContent = ({
             videoHeight: 700,
             videoWidth: 400,
           }}
+          autoplay={true}
+          muted={true}
         />
       </div>
     ) : (

@@ -28,8 +28,22 @@ import {
   setProgramIds,
   useConnectionConfig,
 } from '@oyster/common';
-import { MintInfo } from '@solana/spl-token';
-import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
+import { MintInfo, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import artOrder from './../config/art-order.json';
+import {
+  NAME_PROGRAM_ID,
+  VERIFICATION_AUTHORITY_OFFSET,
+  TWITTER_VERIFICATION_AUTHORITY,
+  TWITTER_ACCOUNT_LENGTH,
+  NameRegistryState,
+} from '@solana/spl-name-service';
+import {
+  Connection,
+  PublicKey,
+  PublicKeyAndAccount,
+  Transaction,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import BN from 'bn.js';
 import React, {
   useCallback,
@@ -442,17 +456,23 @@ export function MetaProvider({ children = null as any }) {
 
   const filteredMetadata = useMemo(
     () =>
-      metadata.filter(m =>
-        m?.info?.data?.creators?.find(
-          c =>
-            c.verified &&
-            store &&
-            store.info &&
-            (store.info.public ||
-              whitelistedCreatorsByCreator[c.address.toBase58()]?.info
-                ?.activated),
-        ),
-      ),
+      metadata
+        .filter(m =>
+          m?.info?.data?.creators?.find(
+            c =>
+              c.verified &&
+              store &&
+              store.info &&
+              (store.info.public ||
+                whitelistedCreatorsByCreator[c.address.toBase58()]?.info
+                  ?.activated),
+          ),
+        )
+        .sort((a, b) => {
+          const aIndex = Number((artOrder as any)[a.pubkey.toBase58()] || '0');
+          const bIndex = Number((artOrder as any)[b.pubkey.toBase58()] || '0');
+          return aIndex - bIndex;
+        }),
     [metadata, store, whitelistedCreatorsByCreator],
   );
 

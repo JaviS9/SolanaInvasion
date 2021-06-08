@@ -6,7 +6,6 @@ export const useUserArts = (): SafetyDepositDraft[] => {
   const { metadata, masterEditions, editions, whitelistedCreatorsByCreator } =
     useMeta();
   const { userAccounts } = useUserAccounts();
-  const { wallet } = useWallet();
 
   const accountByMint = userAccounts.reduce((prev, acc) => {
     prev.set(acc.info.mint.toBase58(), acc);

@@ -81,7 +81,7 @@ export const AuctionView = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const art = useArt(auction?.thumbnail.metadata.pubkey);
   const creators = useCreators(auction);
-  const edition = '-';
+  const edition = '1 of 1';
   const nftCount = auction?.items.flat().length;
   const winnerCount = auction?.items.length;
   const auctionData = AuctionData as any;

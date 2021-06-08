@@ -10,7 +10,7 @@ import {
   MasterEdition,
   useWallet,
 } from '@oyster/common';
-import { WalletAdapter } from '@solana/wallet-base';
+import artOrder from './../config/art-order.json';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { useEffect, useState } from 'react';
@@ -153,11 +153,19 @@ export const useAuctions = (state?: AuctionViewState) => {
 
   return (Object.values(auctionViews).filter(v => v) as AuctionView[]).sort(
     (a, b) => {
-      return (
-        b?.auction.info.endedAt
-          ?.sub(a?.auction.info.endedAt || new BN(0))
-          .toNumber() || 0
+      // sort by custom order from config
+      const aIndex = Number(
+        (artOrder as any)[a.items[0][0].metadata.pubkey.toBase58()] || '0',
       );
+      const bIndex = Number(
+        (artOrder as any)[b.items[0][0].metadata.pubkey.toBase58()] || '0',
+      );
+      return aIndex - bIndex;
+      // return (
+      //   b?.auction.info.endedAt
+      //     ?.sub(a?.auction.info.endedAt || new BN(0))
+      //     .toNumber() || 0
+      // );
     },
   );
 };
