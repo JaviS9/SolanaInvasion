@@ -102,7 +102,7 @@ export class MasterEdition {
     printingMint: PublicKey;
     oneTimePrintingAuthorizationMint: PublicKey;
   }) {
-    this.key = MetadataKey.MasterEditionV1;
+    this.key = args.key;
     this.supply = args.supply;
     this.maxSupply = args.maxSupply;
     this.printingMint = args.printingMint;

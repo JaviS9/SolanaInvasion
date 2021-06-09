@@ -246,14 +246,16 @@ export async function sendRedeemBid(
         );
         stopPoint = 1;
       } else {
-        stopPoint = await sendTransactions(
-          connection,
-          wallet,
-          instructions,
-          filteredSigners,
-          SequenceType.StopOnFailure,
-          'single',
-        );
+        for (let i = 0; i < instructions.length; i++) {
+          stopPoint = i;
+          await sendTransactionWithRetry(
+            connection,
+            wallet,
+            instructions[i],
+            filteredSigners[i],
+            'single',
+          );
+        }
       }
     } catch (e) {
       console.error(e);
