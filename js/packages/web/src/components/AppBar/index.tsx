@@ -2,12 +2,6 @@ import React, { useMemo } from 'react';
 import './index.less';
 import { Link } from 'react-router-dom';
 import { Button, Dropdown, Menu } from 'antd';
-import {
-  ConnectButton,
-  CurrentUserBadge,
-  useConnection,
-  useWallet,
-} from '@oyster/common';
 import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
@@ -18,13 +12,8 @@ import {
   useConnection,
   STORE_OWNER_ADDRESS,
 } from '@oyster/common';
-import { Button, Dropdown, Menu } from 'antd';
-import React from 'react';
-import { Link } from 'react-router-dom';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { useMeta } from '../../contexts';
-import useWindowDimensions from '../../utils/layout';
-import { Notifications } from '../Notifications';
 import './index.less';
 
 const UserActions = () => {
