@@ -1,7 +1,9 @@
 import { dir } from 'console';
 import React from 'react';
+import ContentLoader from 'react-content-loader';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { ThreeDots } from '../MyLoader';
 import { TouchableOrbitControls } from './utils';
 
 // const OrbitControls = oc(THREE);
@@ -35,7 +37,10 @@ const phongifyVertexColors = (gltfScene: any) => {
   });
 };
 
-export class MeshViewer extends React.Component<MeshViewerProps, {}> {
+export class MeshViewer extends React.Component<
+  MeshViewerProps,
+  { isLoading: boolean }
+> {
   private threeMountRef = React.createRef<HTMLDivElement>();
 
   private gltfLoader: GLTFLoader = new GLTFLoader();
@@ -53,6 +58,11 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
   private lights: THREE.Light[] = [];
 
   private scene?: THREE.Scene;
+
+  constructor(props: MeshViewerProps) {
+    super(props);
+    this.state = { isLoading: true };
+  }
 
   componentDidMount() {
     if (!this.threeMountRef.current) {
@@ -143,6 +153,7 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
         animate();
         this.handleWindowResize();
         this.resetCamera();
+        this.setState({ isLoading: false });
       },
       undefined,
       error => {
@@ -237,18 +248,42 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
 
   render() {
     return (
-      <div
-        ref={this.threeMountRef}
-        style={{
-          width: `100%`,
-          height: `100%`,
-          minHeight: `300px`,
-          minWidth: 150,
-          maxHeight: 300,
-          ...this.props.style,
-        }}
-        className={`three-orbit ${this.props.className || ''}`.trim()}
-      />
+      <>
+        <div
+          ref={this.threeMountRef}
+          style={{
+            width: `100%`,
+            height: `100%`,
+            minHeight: `300px`,
+            minWidth: 150,
+            maxHeight: 300,
+            position: 'relative',
+            ...this.props.style,
+          }}
+          className={`three-orbit ${this.props.className || ''}`.trim()}
+        >
+          {this.state.isLoading && (
+            <ContentLoader
+              viewBox="0 0 212 200"
+              height={200}
+              width={212}
+              backgroundColor="transparent"
+              style={{
+                width: '100%',
+                margin: 'auto',
+                position: 'absolute',
+                zIndex: 99,
+                top: 0,
+                left: 0,
+              }}
+            >
+              <circle cx="86" cy="100" r="8" />
+              <circle cx="106" cy="100" r="8" />
+              <circle cx="126" cy="100" r="8" />
+            </ContentLoader>
+          )}
+        </div>
+      </>
     );
   }
 }
