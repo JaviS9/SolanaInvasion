@@ -46,7 +46,8 @@ export const ArtContent = ({
   }, [active, playerApi]);
 
   if (extension?.endsWith('.glb') || category === 'vr') {
-    return <MeshViewer url={uri} className={className} style={style} />;
+    const renderURL = files && files.length > 0 ? files[0] : uri;
+    return <MeshViewer url={renderURL} className={className} style={style} />;
   }
   const likelyVideo = (files || []).filter((f, index, arr) => {
     // TODO: filter by fileType
