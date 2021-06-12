@@ -1,3 +1,4 @@
+import { dir } from 'console';
 import React from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
@@ -49,6 +50,10 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
 
   private windowResizeListener?: any;
 
+  private lights: THREE.Light[] = [];
+
+  private scene?: THREE.Scene;
+
   componentDidMount() {
     if (!this.threeMountRef.current) {
       return;
@@ -65,8 +70,7 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
     this.windowResizeListener = () => self.handleWindowResize();
     window.addEventListener(`resize`, this.windowResizeListener);
 
-    const scene = new THREE.Scene();
-    // this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    this.scene = new THREE.Scene();
     this.camera = new THREE.OrthographicCamera(
       width / -20,
       width / 20,
@@ -83,17 +87,6 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
     this.controls.enableZoom = false;
     this.controls.enablePan = false;
     this.controls.autorotate = true;
-
-    let dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
-    dirLight.position.set(-20, 0, 50);
-    scene.add(dirLight);
-
-    dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
-    dirLight.position.set(-20, 0, -50);
-    scene.add(dirLight);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
 
     this.resetCamera();
 
@@ -113,7 +106,7 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
 
     this.gltfLoader.load(
       meshURL,
-      (gltf) => {
+      gltf => {
         const gltfScene = gltf.scene;
 
         if (
@@ -128,7 +121,7 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
         bbox.getCenter(c);
         gltfScene.position.set(-c.x, -c.y, -c.z);
         this.gltfScene = gltfScene;
-        scene.add(gltfScene);
+        this.scene!.add(gltfScene);
 
         let mixer: THREE.AnimationMixer | undefined;
         if (gltf.animations && gltf.animations.length > 0) {
@@ -145,13 +138,14 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
             mixer.update(clock.getDelta());
           }
           controls.update();
-          renderer.render(scene, camera);
+          renderer.render(this.scene!, camera);
         };
         animate();
         this.handleWindowResize();
+        this.resetCamera();
       },
       undefined,
-      (error) => {
+      error => {
         console.error(error);
       },
     );
@@ -197,23 +191,62 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
   }
 
   resetCamera() {
-    if (!this.camera || !this.controls) {
+    if (!this.camera || !this.controls || !this.gltfScene || !this.scene) {
       return;
     }
+
+    const box = new THREE.Box3().setFromObject(this.gltfScene);
+    const size = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+
     this.camera.position.setFromSphericalCoords(
-      40,
+      size * 1.5,
       THREE.MathUtils.degToRad(45),
       -THREE.MathUtils.degToRad(0),
     );
     this.controls.autorotate = true;
     this.controls.update();
+
+    for (let i = 0; i < this.lights.length; i += 1) {
+      this.scene.remove(this.lights[i]);
+    }
+    this.lights = [];
+
+    let dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    dirLight.position.setFromSphericalCoords(
+      size * 2.0,
+      THREE.MathUtils.degToRad(45),
+      THREE.MathUtils.degToRad(90),
+    );
+    this.scene.add(dirLight);
+    this.lights.push(dirLight);
+
+    dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    dirLight.position.setFromSphericalCoords(
+      size * 2.0,
+      THREE.MathUtils.degToRad(45),
+      THREE.MathUtils.degToRad(-90),
+    );
+    this.scene.add(dirLight);
+    this.lights.push(dirLight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    this.scene.add(ambientLight);
+    this.lights.push(ambientLight);
   }
 
   render() {
     return (
       <div
         ref={this.threeMountRef}
-        style={{ width: `100%`, height: `100%`, minHeight: `300px`, minWidth: 150, maxHeight: 300, ...this.props.style }}
+        style={{
+          width: `100%`,
+          height: `100%`,
+          minHeight: `300px`,
+          minWidth: 150,
+          maxHeight: 300,
+          ...this.props.style,
+        }}
         className={`three-orbit ${this.props.className || ''}`.trim()}
       />
     );
