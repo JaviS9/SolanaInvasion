@@ -15,6 +15,7 @@ export const ArtContent = ({
   style,
   files,
   active,
+  allowMeshRender,
 }: {
   category?: MetadataCategory;
   extension?: string;
@@ -27,6 +28,7 @@ export const ArtContent = ({
   files?: string[];
   ref?: Ref<HTMLDivElement>;
   active?: boolean;
+  allowMeshRender?: boolean;
 }) => {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [playerApi, setPlayerApi] = useState<StreamPlayerApi>();
@@ -45,7 +47,7 @@ export const ArtContent = ({
     }
   }, [active, playerApi]);
 
-  if (extension?.endsWith('.glb') || category === 'vr') {
+  if (allowMeshRender && (extension?.endsWith('.glb') || category === 'vr')) {
     const renderURL = files && files.length > 0 ? files[0] : uri;
     return <MeshViewer url={renderURL} className={className} style={style} />;
   }

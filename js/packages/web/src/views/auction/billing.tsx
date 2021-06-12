@@ -398,6 +398,7 @@ export const InnerBillingView = ({
               extension={art.image}
               files={art.files}
               className="artwork-image"
+              allowMeshRender
             />
           </Col>
           <Col span={12}>

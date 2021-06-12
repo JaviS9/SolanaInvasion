@@ -68,6 +68,7 @@ export const AuctionItem = ({
         style={style}
         ref={ref}
         active={active}
+        allowMeshRender
       />
     </div>
   );
@@ -89,13 +90,18 @@ export const AuctionView = () => {
       <Row justify="space-around">
         <Col span={24} md={12} className="pr-4">
           <div className="">
-          <Carousel autoplay={false} afterChange={(index) => setCurrentIndex(index)}>
+            <Carousel
+              autoplay={false}
+              afterChange={index => setCurrentIndex(index)}
+            >
               {[
-                ...(auction?.items.flat()
+                ...(auction?.items
+                  .flat()
                   .reduce((agg, item) => {
-                      agg.set(item.metadata.pubkey.toBase58(), item);
-                      return agg;
-                    }, new Map<string, AuctionViewItem>()).values() || []),
+                    agg.set(item.metadata.pubkey.toBase58(), item);
+                    return agg;
+                  }, new Map<string, AuctionViewItem>())
+                  .values() || []),
                 auction?.participationItem,
               ].map((item, index, arr) => {
                 if (!item || !item?.metadata || !item.metadata?.pubkey) {
@@ -103,15 +109,15 @@ export const AuctionView = () => {
                 }
 
                 return (
-                    <AuctionItem
-                      item={item}
-                      index={index}
-                      size={arr.length}
-                      active={index === currentIndex}
-                    ></AuctionItem>
+                  <AuctionItem
+                    item={item}
+                    index={index}
+                    size={arr.length}
+                    active={index === currentIndex}
+                  ></AuctionItem>
                 );
               })}
-              </Carousel>
+            </Carousel>
           </div>
           <h6>NUMBER OF WINNERS</h6>
           <h1>{winnerCount}</h1>
@@ -134,9 +140,7 @@ export const AuctionView = () => {
         </Col>
 
         <Col span={24} md={12}>
-          <h2 className="art-title">
-            {art.title}
-          </h2>
+          <h2 className="art-title">{art.title}</h2>
           <Row gutter={[50, 0]} style={{ marginRight: 'unset' }}>
             <Col>
               <h6>Edition</h6>
@@ -235,7 +239,7 @@ const BidLine = (props: { bid: any; index: number; mint?: MintInfo }) => {
       </Col>
       <Col span={6} style={{ textAlign: 'right' }}>
         <span title={fromLamports(bid.info.lastBid, mint).toString()}>
-        ◎{formatTokenAmount(bid.info.lastBid, mint)}
+          ◎{formatTokenAmount(bid.info.lastBid, mint)}
         </span>
       </Col>
     </Row>

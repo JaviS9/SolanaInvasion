@@ -49,12 +49,13 @@ export const ArtView = () => {
               category={art.category}
               extension={art.image}
               uri={art.image}
-              style={{ width: 500 }}
+              style={{ maxWidth: 500 }}
               height={500}
               width={500}
               className="artwork-image"
               files={art.files}
               active={true}
+              allowMeshRender
             />
           </Col>
           {/* <Divider /> */}
