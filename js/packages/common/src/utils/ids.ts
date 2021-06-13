@@ -1,14 +1,14 @@
 import { PublicKey } from '@solana/web3.js';
 import { TokenSwapLayout, TokenSwapLayoutV1 } from '../models/tokenSwap';
 
-/*
 export const STORE_OWNER_ADDRESS = new PublicKey(
   'kickNLAj7N8kfEtXLuhpYJLGwZjJahuz7nr9tjKgn8e',
 );
-*/
+/*
 export const STORE_OWNER_ADDRESS = new PublicKey(
   'bckupPkvbcbG7aEdfCz8PMUcAHrhNxE2z5V5Wz3CdnV',
 );
+*/
 console.debug(`Store owner address: ${STORE_OWNER_ADDRESS?.toBase58()}`);
 
 export const WRAPPED_SOL_MINT = new PublicKey(
