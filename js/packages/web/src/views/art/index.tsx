@@ -49,9 +49,9 @@ export const ArtView = () => {
               category={art.category}
               extension={art.image}
               uri={art.image}
-              style={{ maxWidth: 500 }}
-              height={500}
-              width={500}
+              style={{ maxWidth: 300 }}
+              height={300}
+              width={300}
               className="artwork-image"
               files={art.files}
               active={true}
