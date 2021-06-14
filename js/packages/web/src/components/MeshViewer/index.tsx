@@ -13,28 +13,6 @@ type MeshViewerProps = {
   url?: string;
   gltf?: string;
   style?: React.CSSProperties;
-  forcePhongMaterialForVertexColors?: boolean;
-};
-
-const phongifyVertexColors = (gltfScene: any) => {
-  const phongMaterial = new THREE.MeshPhongMaterial({
-    shininess: 200,
-    flatShading: true,
-  });
-  phongMaterial.vertexColors = true;
-
-  gltfScene.traverse((o: any) => {
-    if (o instanceof THREE.Mesh && o.isMesh) {
-      const meshO = o;
-      if (
-        !(meshO.material instanceof THREE.MeshPhongMaterial) &&
-        meshO.material.vertexColors
-      ) {
-        meshO.material = phongMaterial;
-        meshO.material.needsUpdate = true;
-      }
-    }
-  });
 };
 
 export class MeshViewer extends React.Component<
@@ -75,6 +53,7 @@ export class MeshViewer extends React.Component<
     const height = this.threeMountRef.current.clientHeight;
     this.renderer.setSize(width, height, false);
     this.renderer.setClearColor(0);
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.threeMountRef.current.appendChild(this.renderer.domElement);
     const self = this;
     this.windowResizeListener = () => self.handleWindowResize();
@@ -118,14 +97,6 @@ export class MeshViewer extends React.Component<
       meshURL,
       gltf => {
         const gltfScene = gltf.scene;
-
-        if (
-          this.props.forcePhongMaterialForVertexColors ||
-          this.props.forcePhongMaterialForVertexColors === undefined
-        ) {
-          phongifyVertexColors(gltfScene);
-        }
-
         const bbox = new THREE.Box3().setFromObject(gltfScene);
         const c = new THREE.Vector3();
         bbox.getCenter(c);
@@ -241,7 +212,7 @@ export class MeshViewer extends React.Component<
     this.scene.add(dirLight);
     this.lights.push(dirLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     this.scene.add(ambientLight);
     this.lights.push(ambientLight);
   }
