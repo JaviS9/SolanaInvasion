@@ -30,9 +30,7 @@ export const PreSaleBanner = ({ auction }: IPreSaleBanner) => {
         />
       </Col>
       <Col md={12} className="presale-info">
-        <h2 className="art-title">
-          {art.title}
-        </h2>
+        <h2 className="art-title">{art.title}</h2>
         {auction && (
           <AuctionCard
             auctionView={auction}

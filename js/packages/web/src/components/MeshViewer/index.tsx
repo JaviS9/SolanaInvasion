@@ -113,7 +113,7 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
 
     this.gltfLoader.load(
       meshURL,
-      (gltf) => {
+      gltf => {
         const gltfScene = gltf.scene;
 
         if (
@@ -151,7 +151,7 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
         this.handleWindowResize();
       },
       undefined,
-      (error) => {
+      error => {
         console.error(error);
       },
     );
@@ -213,7 +213,14 @@ export class MeshViewer extends React.Component<MeshViewerProps, {}> {
     return (
       <div
         ref={this.threeMountRef}
-        style={{ width: `100%`, height: `100%`, minHeight: `300px`, minWidth: 150, maxHeight: 300, ...this.props.style }}
+        style={{
+          width: `100%`,
+          height: `100%`,
+          minHeight: `300px`,
+          minWidth: 150,
+          maxHeight: 300,
+          ...this.props.style,
+        }}
         className={`three-orbit ${this.props.className || ''}`.trim()}
       />
     );

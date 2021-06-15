@@ -93,7 +93,7 @@ export const ArtCard = (props: ArtCardProps) => {
       }
       {...rest}
     >
-     <Meta
+      <Meta
         title={`${name}`}
         description={
           <>

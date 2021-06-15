@@ -4,11 +4,7 @@ import {
   PlayCircleOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import {
-  useConnection,
-  useUserAccounts,
-  useWallet,
-} from '@oyster/common';
+import { useConnection, useUserAccounts, useWallet } from '@oyster/common';
 import { Badge, Popover, List } from 'antd';
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
