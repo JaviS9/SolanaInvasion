@@ -45,6 +45,7 @@ export const HomeView = () => {
   );
 
   const liveAuctions = auctions
+  .filter((e) => !e.auction.info.ended()) // TDIM: only show live auctions
   .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0);
 
   const liveAuctionsView = (

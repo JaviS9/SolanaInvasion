@@ -459,9 +459,10 @@ export function MetaProvider({ children = null as any }) {
     [metadata, store, whitelistedCreatorsByCreator],
   );
   */
-  const BLACKLISTED_CREATIONS = new Set<string>(
+  const BLACKLISTED_CREATIONS = new Set<string>([
     "Byi68moFBwtHUoaqx4b2dQtMpn2wVWBYrnzNyEHzaH3f",
-  );
+    "G2WwmSvdsPggnotN3xvrEjNRiQcFuLmhy8L38NB9rske",
+  ]);
   const filteredMetadata = useMemo(
     () =>
       metadata.filter(m =>
