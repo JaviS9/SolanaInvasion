@@ -26,7 +26,7 @@ import {
   useConnection,
   useConnectionConfig,
   Vault,
-  VaultKey,
+  VaultKey
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
@@ -36,7 +36,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useState
 } from 'react';
 import {
   AuctionManager,
@@ -52,7 +52,7 @@ import {
   PayoutTicket,
   Store,
   WhitelistedCreator,
-  WhitelistedCreatorParser,
+  WhitelistedCreatorParser
 } from '../models/metaplex';
 import names from './../config/userNames.json';
 
@@ -459,9 +459,13 @@ export function MetaProvider({ children = null as any }) {
     [metadata, store, whitelistedCreatorsByCreator],
   );
   */
+  const BLACKLISTED_CREATIONS = new Set<string>(
+    "Byi68moFBwtHUoaqx4b2dQtMpn2wVWBYrnzNyEHzaH3f",
+  );
   const filteredMetadata = useMemo(
     () =>
       metadata.filter(m =>
+        !BLACKLISTED_CREATIONS.has(m?.pubkey.toBase58()) &&
         m?.info?.data?.creators?.find(
           c =>
             c.address.toBase58() ===

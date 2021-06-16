@@ -1,59 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import { PlusCircleOutlined } from '@ant-design/icons';
 import {
-  Divider,
-  Steps,
-  Row,
-  Button,
-  Col,
-  Input,
-  Statistic,
-  Progress,
-  Spin,
-  Radio,
-  Card,
-  Select,
-  Checkbox,
-} from 'antd';
-import { ArtCard } from './../../components/ArtCard';
-import { QUOTE_MINT } from './../../constants';
-import { Confetti } from './../../components/Confetti';
-import { ArtSelector } from './artSelector';
-import './../styles.less';
-import {
-  MAX_METADATA_LEN,
-  useConnection,
-  useWallet,
+  Creator, MAX_METADATA_LEN, toLamports, useConnection, useMint, useWallet,
   WinnerLimit,
-  WinnerLimitType,
-  toLamports,
-  useMint,
-  Creator,
+  WinnerLimitType
 } from '@oyster/common';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { ZERO } from '@oyster/common/dist/lib/constants';
 import { MintLayout } from '@solana/spl-token';
-import { useHistory, useParams } from 'react-router-dom';
-import { capitalize } from 'lodash';
+import { Connection, PublicKey } from '@solana/web3.js';
 import {
-  AuctionManagerSettings,
-  WinningConfigType,
-  NonWinningConstraint,
-  WinningConfig,
-  WinningConstraint,
-  ParticipationConfig,
-  WinningConfigItem,
-} from '../../models/metaplex';
+  Button, Card, Checkbox, Col, Divider, Input, Progress, Radio, Row, Select, Spin, Statistic, Steps
+} from 'antd';
+import BN from 'bn.js';
+import { capitalize } from 'lodash';
 import moment from 'moment';
+import React, { useEffect, useState } from 'react';
+import { useHistory, useParams } from 'react-router-dom';
 import {
   createAuctionManager,
-  SafetyDepositDraft,
+  SafetyDepositDraft
 } from '../../actions/createAuctionManager';
-import BN from 'bn.js';
-import { ZERO } from '@oyster/common/dist/lib/constants';
-import { DateTimePicker } from '../../components/DateTimePicker';
 import { AmountLabel } from '../../components/AmountLabel';
+import { DateTimePicker } from '../../components/DateTimePicker';
 import { useMeta } from '../../contexts';
+import {
+  AuctionManagerSettings, NonWinningConstraint, ParticipationConfig, WinningConfig, WinningConfigItem, WinningConfigType, WinningConstraint
+} from '../../models/metaplex';
 import useWindowDimensions from '../../utils/layout';
-import { PlusCircleOutlined } from '@ant-design/icons';
+import { ArtCard } from './../../components/ArtCard';
+import { Confetti } from './../../components/Confetti';
+import { QUOTE_MINT } from './../../constants';
+import './../styles.less';
+import { ArtSelector } from './artSelector';
 
 const { Option } = Select;
 const { Step } = Steps;
@@ -507,6 +484,7 @@ const CategoryStep = (props: {
       </Row>
       <Row justify={width < 768 ? 'center' : 'start'}>
         <Col>
+          {/*
           <Row>
             <Button
               className="type-btn"
@@ -550,6 +528,7 @@ const CategoryStep = (props: {
               </div>
             </Button>
           </Row>
+          */}
           <Row>
             <Button
               className="type-btn"
