@@ -1,36 +1,66 @@
-import { PlusCircleOutlined } from '@ant-design/icons';
-import {
-  Creator, MAX_METADATA_LEN, toLamports, useConnection, useMint, useWallet,
-  WinnerLimit,
-  WinnerLimitType
-} from '@oyster/common';
-import { ZERO } from '@oyster/common/dist/lib/constants';
-import { MintLayout } from '@solana/spl-token';
-import { Connection, PublicKey } from '@solana/web3.js';
-import {
-  Button, Card, Checkbox, Col, Divider, Input, Progress, Radio, Row, Select, Spin, Statistic, Steps
-} from 'antd';
-import BN from 'bn.js';
-import { capitalize } from 'lodash';
-import moment from 'moment';
 import React, { useEffect, useState } from 'react';
+import {
+  Divider,
+  Steps,
+  Row,
+  Button,
+  Col,
+  Input,
+  Statistic,
+  Progress,
+  Spin,
+  Radio,
+  Card,
+  Select,
+  Checkbox,
+} from 'antd';
+import { ArtCard } from './../../components/ArtCard';
+import { QUOTE_MINT } from './../../constants';
+import { Confetti } from './../../components/Confetti';
+import { ArtSelector } from './artSelector';
+import './../styles.less';
+import {
+  MAX_METADATA_LEN,
+  useConnection,
+  useWallet,
+  WinnerLimit,
+  WinnerLimitType,
+  toLamports,
+  useMint,
+  Creator,
+  PriceFloor,
+  PriceFloorType,
+} from '@oyster/common';
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+} from '@solana/web3.js';
+import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
+import { capitalize } from 'lodash';
+import {
+  AuctionManagerSettings,
+  WinningConfigType,
+  NonWinningConstraint,
+  WinningConfig,
+  WinningConstraint,
+  ParticipationConfig,
+  WinningConfigItem,
+} from '../../models/metaplex';
+import moment from 'moment';
 import {
   createAuctionManager,
-  SafetyDepositDraft
+  SafetyDepositDraft,
 } from '../../actions/createAuctionManager';
-import { AmountLabel } from '../../components/AmountLabel';
+import BN from 'bn.js';
+import { ZERO } from '@oyster/common/dist/lib/constants';
 import { DateTimePicker } from '../../components/DateTimePicker';
+import { AmountLabel } from '../../components/AmountLabel';
 import { useMeta } from '../../contexts';
-import {
-  AuctionManagerSettings, NonWinningConstraint, ParticipationConfig, WinningConfig, WinningConfigItem, WinningConfigType, WinningConstraint
-} from '../../models/metaplex';
 import useWindowDimensions from '../../utils/layout';
-import { ArtCard } from './../../components/ArtCard';
-import { Confetti } from './../../components/Confetti';
-import { QUOTE_MINT } from './../../constants';
-import './../styles.less';
-import { ArtSelector } from './artSelector';
+import { PlusCircleOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { Step } = Steps;
@@ -59,6 +89,7 @@ export interface AuctionState {
   // listed NFTs
   items: SafetyDepositDraft[];
   participationNFT?: SafetyDepositDraft;
+  participationFixedPrice?: number;
   // number of editions for this auction (only applicable to limited edition)
   editions?: number;
 
@@ -145,7 +176,9 @@ export const AuctionCreateView = () => {
           safetyDepositBoxIndex: 0,
           winnerConstraint: WinningConstraint.ParticipationPrizeGiven,
           nonWinningConstraint: NonWinningConstraint.GivenForFixedPrice,
-          fixedPrice: new BN(toLamports(attributes.priceFloor, mint) || 0),
+          fixedPrice: new BN(
+            toLamports(attributes.participationFixedPrice, mint) || 0,
+          ),
         }),
       });
 
@@ -200,7 +233,9 @@ export const AuctionCreateView = () => {
               safetyDepositBoxIndex: attributes.items.length,
               winnerConstraint: WinningConstraint.ParticipationPrizeGiven,
               nonWinningConstraint: NonWinningConstraint.GivenForFixedPrice,
-              fixedPrice: new BN(toLamports(attributes.priceFloor, mint) || 0),
+              fixedPrice: new BN(
+                toLamports(attributes.participationFixedPrice, mint) || 0,
+              ),
             })
           : null,
       });
@@ -261,7 +296,9 @@ export const AuctionCreateView = () => {
               safetyDepositBoxIndex: tieredAttributes.items.length,
               winnerConstraint: WinningConstraint.ParticipationPrizeGiven,
               nonWinningConstraint: NonWinningConstraint.GivenForFixedPrice,
-              fixedPrice: new BN(toLamports(attributes.priceFloor, mint) || 0),
+              fixedPrice: new BN(
+                toLamports(attributes.participationFixedPrice, mint) || 0,
+              ),
             })
           : null,
       });
@@ -286,6 +323,12 @@ export const AuctionCreateView = () => {
         ? attributes.items[0]
         : attributes.participationNFT,
       QUOTE_MINT,
+      new PriceFloor({
+        type: attributes.priceFloor
+          ? PriceFloorType.Minimum
+          : PriceFloorType.None,
+        minPrice: new BN((attributes.priceFloor || 0) * LAMPORTS_PER_SOL),
+      }),
     );
     setAuctionObj(_auctionObj);
   };
@@ -815,27 +858,55 @@ const PriceAuction = (props: {
       </Row>
       <Row className="content-action">
         <Col className="section" xl={24}>
-          <label className="action-field">
-            <span className="field-title">Price Floor</span>
-            <span className="field-info">
-              This is the starting bid price for your auction.
-            </span>
-            <Input
-              type="number"
-              min={0}
-              autoFocus
-              className="input"
-              placeholder="Price"
-              prefix="◎"
-              suffix="SOL"
-              onChange={info =>
-                props.setAttributes({
-                  ...props.attributes,
-                  priceFloor: parseFloat(info.target.value),
-                })
-              }
-            />
-          </label>
+          {props.attributes.category === AuctionCategory.Open && (
+            <label className="action-field">
+              <span className="field-title">Price</span>
+              <span className="field-info">
+                This is an optional fixed price that non-winners will pay for
+                your Participation NFT.
+              </span>
+              <Input
+                type="number"
+                min={0}
+                autoFocus
+                className="input"
+                placeholder="Fixed Price"
+                prefix="◎"
+                suffix="SOL"
+                onChange={info =>
+                  props.setAttributes({
+                    ...props.attributes,
+                    // Do both, since we know this is the only item being sold.
+                    participationFixedPrice: parseFloat(info.target.value),
+                    priceFloor: parseFloat(info.target.value),
+                  })
+                }
+              />
+            </label>
+          )}
+          {props.attributes.category != AuctionCategory.Open && (
+            <label className="action-field">
+              <span className="field-title">Price Floor</span>
+              <span className="field-info">
+                This is the starting bid price for your auction.
+              </span>
+              <Input
+                type="number"
+                min={0}
+                autoFocus
+                className="input"
+                placeholder="Price"
+                prefix="◎"
+                suffix="SOL"
+                onChange={info =>
+                  props.setAttributes({
+                    ...props.attributes,
+                    priceFloor: parseFloat(info.target.value),
+                  })
+                }
+              />
+            </label>
+          )}
           <label className="action-field">
             <span className="field-title">Tick Size</span>
             <span className="field-info">
@@ -1522,6 +1593,28 @@ const ParticipationStep = (props: {
           >
             Select Participation NFT
           </ArtSelector>
+          <label className="action-field">
+            <span className="field-title">Price</span>
+            <span className="field-info">
+              This is an optional fixed price that non-winners will pay for your
+              Participation NFT.
+            </span>
+            <Input
+              type="number"
+              min={0}
+              autoFocus
+              className="input"
+              placeholder="Fixed Price"
+              prefix="◎"
+              suffix="SOL"
+              onChange={info =>
+                props.setAttributes({
+                  ...props.attributes,
+                  participationFixedPrice: parseFloat(info.target.value),
+                })
+              }
+            />
+          </label>
         </Col>
       </Row>
       <Row>
