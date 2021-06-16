@@ -200,12 +200,16 @@ export const AuctionCreateView = () => {
               new WinningConfigItem({
                 safetyDepositBoxIndex: 0,
                 amount: 1,
+                // THOMAS: move to token only transfer instead of full rights transfer
+                winningConfigType: WinningConfigType.TokenOnlyTransfer,
+                /*
                 // Assume if you select a thing with a Master Edition you want to do a full rights
                 // transfer vs a token only transfer. If we want to move to jsut transferring the token
                 // not the entire thing, change this.
                 winningConfigType: attributes.items[0].masterEdition
                   ? WinningConfigType.FullRightsTransfer
                   : WinningConfigType.TokenOnlyTransfer,
+                  */
               }),
             ],
           }),
