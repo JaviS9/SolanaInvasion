@@ -61,7 +61,7 @@ export const HomeView = () => {
                 </Link>
               );
             })
-        : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
+        : [...Array(12)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
   const endedAuctions = (
