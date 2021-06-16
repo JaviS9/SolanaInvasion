@@ -72,7 +72,6 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-            .filter((m, idx) => idx < 10)
             .map((m, idx) => {
               const id = m.auction.pubkey.toBase58();
               return (
@@ -81,7 +80,7 @@ export const HomeView = () => {
                 </Link>
               );
             })
-        : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
+        : [...Array(12)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
 
