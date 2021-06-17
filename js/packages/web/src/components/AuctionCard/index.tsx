@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Row, Col, Button, InputNumber, Spin } from 'antd';
+import React, { useState } from 'react';
+import { Col, Button, InputNumber, Spin } from 'antd';
 import { MemoryRouter, Route, Redirect, Link } from 'react-router-dom';
 
 import './index.less';
@@ -12,26 +12,20 @@ import {
   formatAmount,
   formatTokenAmount,
   useMint,
-  fromLamports,
-  CountdownState,
+  PriceFloorType,
 } from '@oyster/common';
-import {
-  AuctionView,
-  AuctionViewState,
-  useBidsForAuction,
-  useUserBalance,
-} from '../../hooks';
+import { AuctionView, useUserBalance } from '../../hooks';
 import { sendPlaceBid } from '../../actions/sendPlaceBid';
 import { AuctionNumbers } from './../AuctionNumbers';
 import {
   sendRedeemBid,
   eligibleForParticipationPrizeGivenWinningIndex,
 } from '../../actions/sendRedeemBid';
-import { AmountLabel } from '../AmountLabel';
 import { sendCancelBid } from '../../actions/cancelBid';
 import BN from 'bn.js';
 import { Confetti } from '../Confetti';
 import { QUOTE_MINT } from '../../constants';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 const { useWallet } = contexts.Wallet;
 
@@ -72,7 +66,10 @@ export const AuctionCard = ({
     winnerIndex = auctionView.auction.info.bidState.getWinnerIndex(
       auctionView.myBidderPot?.info.bidderAct,
     );
-
+  const priceFloor =
+    auctionView.auction.info.priceFloor.type == PriceFloorType.Minimum
+      ? auctionView.auction.info.priceFloor.minPrice?.toNumber() || 0
+      : 0;
   const eligibleForOpenEdition = eligibleForParticipationPrizeGivenWinningIndex(
     winnerIndex,
     auctionView,
@@ -99,7 +96,9 @@ export const AuctionCard = ({
             className="action-btn"
             disabled={
               !myPayingAccount ||
-              !auctionView.myBidderMetadata ||
+              (!auctionView.myBidderMetadata &&
+                auctionView.auctionManager.info.authority.toBase58() !=
+                  wallet?.publicKey?.toBase58()) ||
               loading ||
               !!auctionView.items.find(i => i.find(it => !it.metadata))
             }
@@ -336,6 +335,7 @@ export const AuctionCard = ({
                     disabled={
                       !myPayingAccount ||
                       value === undefined ||
+                      value * LAMPORTS_PER_SOL < priceFloor ||
                       loading ||
                       !accountByMint.get(QUOTE_MINT.toBase58())
                     }

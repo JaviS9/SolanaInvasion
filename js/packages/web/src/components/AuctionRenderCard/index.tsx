@@ -11,8 +11,6 @@ import {
 import { ArtContent } from '../ArtContent';
 import './index.less';
 import { AuctionView, useArt, useCreators } from '../../hooks';
-import { PublicKey } from '@solana/web3.js';
-import { Artist, ArtType } from '../../types';
 import { MetaAvatar } from '../MetaAvatar';
 import { AmountLabel } from '../AmountLabel';
 import { useHighestBidForAuction } from '../../hooks';

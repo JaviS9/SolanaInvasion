@@ -7,7 +7,14 @@ import {
 } from '@solana/web3.js';
 import { serialize } from 'borsh';
 
-import { getAuctionKeys, getBidderKeys, RedeemBidArgs, SCHEMA } from '.';
+import {
+  getAuctionKeys,
+  getBidderKeys,
+  ProxyCallAddress,
+  RedeemBidArgs,
+  RedeemUnusedWinningConfigItemsAsAuctioneerArgs,
+  SCHEMA,
+} from '.';
 
 export async function redeemBid(
   vault: PublicKey,
@@ -21,8 +28,16 @@ export async function redeemBid(
   reservationList: PublicKey | undefined,
   isPrintingType: boolean,
   instructions: TransactionInstruction[],
+  // If this is an auctioneer trying to reclaim a specific winning index, pass it here,
+  // and this will instead call the proxy route instead of the real one, wrapping the original
+  // redemption call in an override call that forces the winning index if the auctioneer is authorized.
+  auctioneerReclaimIndex?: number,
 ) {
   const PROGRAM_IDS = programIds();
+  const store = PROGRAM_IDS.store;
+  if (!store) {
+    throw new Error('Store not initialized');
+  }
 
   const { auctionKey, auctionManagerKey } = await getAuctionKeys(vault);
 
@@ -42,7 +57,13 @@ export async function redeemBid(
     )
   )[0];
 
-  const value = new RedeemBidArgs();
+  const value =
+    auctioneerReclaimIndex != undefined
+      ? new RedeemUnusedWinningConfigItemsAsAuctioneerArgs({
+          winningConfigItemIndex: auctioneerReclaimIndex,
+          proxyCall: ProxyCallAddress.RedeemBid,
+        })
+      : new RedeemBidArgs();
   const data = Buffer.from(serialize(SCHEMA, value));
   const keys = [
     {
@@ -116,7 +137,7 @@ export async function redeemBid(
       isWritable: false,
     },
     {
-      pubkey: PROGRAM_IDS.store,
+      pubkey: store,
       isSigner: false,
       isWritable: false,
     },

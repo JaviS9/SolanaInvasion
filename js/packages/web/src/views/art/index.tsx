@@ -67,7 +67,8 @@ export const ArtView = () => {
             <br />
             <div className="info-header">CREATED BY</div>
             <div className="creators">
-              {(art.creators || []).map(creator => {
+              {(art.creators || [])
+                .map(creator => {
                 return (
                   <div
                     className="info-content"

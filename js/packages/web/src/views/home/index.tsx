@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Layout, Row, Col, Tabs } from 'antd';
+import { Layout, Row, Col, Tabs, Button } from 'antd';
 import Masonry from 'react-masonry-css';
 
 import { PreSaleBanner } from '../../components/PreSaleBanner';
@@ -7,10 +7,13 @@ import { AuctionViewState, useAuctions } from '../../hooks';
 
 import './index.less';
 import { AuctionRenderCard } from '../../components/AuctionRenderCard';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { CardLoader } from '../../components/MyLoader';
 import { useMeta } from '../../contexts';
 import BN from 'bn.js';
+import { programIds, useConnection, useWallet } from '@oyster/common';
+import { saveAdmin } from '../../actions/saveAdmin';
+import { WhitelistedCreator } from '../../models/metaplex';
 
 import zodiac from './zodiactext.svg';
 import powered from './poweredby.svg';
@@ -21,7 +24,11 @@ const { Content } = Layout;
 export const HomeView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
-  const { isLoading } = useMeta();
+  const { isLoading, store } = useMeta();
+  const [isInitalizingStore, setIsInitalizingStore] = useState(false);
+  const connection = useConnection();
+  const history = useHistory();
+  const { wallet, connect } = useWallet();
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -40,7 +47,8 @@ export const HomeView = () => {
     [auctions],
   );
 
-  const liveAuctions = auctions;
+  const liveAuctions = auctions
+  .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0);
 
   const liveAuctionsView = (
     <Masonry
@@ -83,6 +91,8 @@ export const HomeView = () => {
         : [...Array(12)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
+
+  const CURRENT_STORE = programIds().store;
 
   return (
     <Layout style={{ margin: 0, marginTop: 30 }}>

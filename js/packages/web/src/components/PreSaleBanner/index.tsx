@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { Col, Row, Button } from 'antd';
 
 import './index.less';
-import { AuctionView, useAuctions, useArt } from '../../hooks';
+import { AuctionView, useArt } from '../../hooks';
 import { ArtContent } from '../ArtContent';
 import { AuctionCard } from '../AuctionCard';
 import { Link } from 'react-router-dom';

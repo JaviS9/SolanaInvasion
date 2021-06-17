@@ -106,6 +106,23 @@ export class PopulateParticipationPrintingAccountArgs {
   instruction = 11;
 }
 
+export enum ProxyCallAddress {
+  RedeemBid = 0,
+  RedeemFullRightsTransferBid = 1,
+}
+export class RedeemUnusedWinningConfigItemsAsAuctioneerArgs {
+  instruction = 12;
+  winningConfigItemIndex: number;
+  proxyCall: ProxyCallAddress;
+  constructor(args: {
+    winningConfigItemIndex: number;
+    proxyCall: ProxyCallAddress;
+  }) {
+    this.winningConfigItemIndex = args.winningConfigItemIndex;
+    this.proxyCall = args.proxyCall;
+  }
+}
+
 export class EmptyPaymentAccountArgs {
   instruction = 7;
   winningConfigIndex: number | null;
@@ -510,6 +527,17 @@ export const SCHEMA = new Map<any, any>([
     },
   ],
   [
+    RedeemUnusedWinningConfigItemsAsAuctioneerArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['winningConfigItemIndex', 'u8'],
+        ['proxyCall', 'u8'],
+      ],
+    },
+  ],
+  [
     InitAuctionManagerArgs,
     {
       kind: 'struct',
@@ -690,12 +718,17 @@ export async function getOriginalAuthority(
 
 export async function getWhitelistedCreator(creator: PublicKey) {
   const PROGRAM_IDS = programIds();
+  const store = PROGRAM_IDS.store;
+  if (!store) {
+    throw new Error('Store not initialized');
+  }
+
   return (
     await PublicKey.findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
         PROGRAM_IDS.metaplex.toBuffer(),
-        PROGRAM_IDS.store.toBuffer(),
+        store.toBuffer(),
         creator.toBuffer(),
       ],
       PROGRAM_IDS.metaplex,

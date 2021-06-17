@@ -1,8 +1,7 @@
+import { Col, Divider, Row } from 'antd';
 import React from 'react';
-import { Row, Col, Divider, Layout, Tag, Badge } from 'antd';
-import { useParams } from 'react-router-dom';
-import { useCreator } from '../../hooks';
 import Masonry from 'react-masonry-css';
+import { Link, useParams } from 'react-router-dom';
 import { ArtCard } from '../../components/ArtCard';
 import { useCreatorArts } from '../../hooks';
 import { Link } from 'react-router-dom';

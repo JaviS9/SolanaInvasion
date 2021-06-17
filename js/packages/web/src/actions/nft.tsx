@@ -8,7 +8,6 @@ import {
   updateMetadata,
   createMasterEdition,
   sendTransactionWithRetry,
-  createTokenAccount,
   Data,
   Creator,
   MetadataCategory,
@@ -267,7 +266,7 @@ export const mintNFT = async (
   const result: IArweaveResult = await (
     await fetch(
       // TODO: add CNAME
-      env === 'mainnet-beta'
+      env.startsWith('mainnet-beta')
         ? 'https://us-central1-principal-lane-200702.cloudfunctions.net/uploadFileProd-1'
         : 'https://us-central1-principal-lane-200702.cloudfunctions.net/uploadFile-1',
       {
@@ -357,6 +356,7 @@ export const mintNFT = async (
       payerPublicKey,
       maxSupply !== undefined ? payerPublicKey : undefined,
     );
+
     // TODO: enable when using payer account to avoid 2nd popup
     /*  if (maxSupply !== undefined)
       updateInstructions.push(

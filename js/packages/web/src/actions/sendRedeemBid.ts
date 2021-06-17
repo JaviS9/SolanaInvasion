@@ -13,16 +13,13 @@ import {
   createMint,
   mintNewEditionFromMasterEditionViaToken,
   SafetyDepositBox,
-  SequenceType,
-  sendTransactions,
   cache,
   ensureWrappedAccount,
-  sendTransactionWithRetry,
   updatePrimarySaleHappenedViaToken,
   getMetadata,
   getReservationList,
   AuctionState,
-  placeBid,
+  sendTransactionsWithManualRetry,
 } from '@oyster/common';
 
 import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
@@ -33,7 +30,6 @@ import {
   redeemBid,
   redeemFullRightsTransferBid,
   redeemParticipationBid,
-  WinningConfig,
   WinningConstraint,
   WinningConfigItem,
   WinningConfigStateItem,
@@ -41,8 +37,8 @@ import {
 import { claimBid } from '../models/metaplex/claimBid';
 import { setupCancelBid } from './cancelBid';
 import { populateParticipationPrintingAccount } from '../models/metaplex/populateParticipationPrintingAccount';
-import BN from 'bn.js';
-import { sendPlaceBid, setupPlaceBid } from './sendPlaceBid';
+import { setupPlaceBid } from './sendPlaceBid';
+import { claimUnusedPrizes } from './claimUnusedPrizes';
 const { createTokenAccount } = actions;
 const { approve } = models;
 
@@ -72,7 +68,7 @@ export async function sendRedeemBid(
 
   if (
     auctionView.auction.info.ended() &&
-    auctionView.auction.info.state != AuctionState.Ended
+    auctionView.auction.info.state !== AuctionState.Ended
   ) {
     await setupPlaceBid(
       connection,
@@ -115,7 +111,7 @@ export async function sendRedeemBid(
         const winningConfigItem = winningConfig.items[j];
 
         if (
-          winningConfigItem.safetyDepositBoxIndex == safetyDeposit.info.order
+          winningConfigItem.safetyDepositBoxIndex === safetyDeposit.info.order
         ) {
           const stateItem =
             auctionView.auctionManager.info.state.winningConfigStates[
@@ -217,60 +213,26 @@ export async function sendRedeemBid(
     );
   }
 
-  let stopPoint = 0;
-  let tries = 0;
-  let lastInstructionsLength = null;
-  let toRemoveSigners: Record<number, boolean> = {};
-  instructions = instructions.filter((instr, i) => {
-    if (instr.length > 0) {
-      return true;
-    } else {
-      toRemoveSigners[i] = true;
-      return false;
-    }
-  });
-  let filteredSigners = signers.filter((_, i) => !toRemoveSigners[i]);
-
-  while (stopPoint < instructions.length && tries < 3) {
-    instructions = instructions.slice(stopPoint, instructions.length);
-    filteredSigners = filteredSigners.slice(stopPoint, filteredSigners.length);
-
-    if (instructions.length == lastInstructionsLength) tries = tries + 1;
-    else tries = 0;
-
-    try {
-      if (instructions.length === 1) {
-        await sendTransactionWithRetry(
-          connection,
-          wallet,
-          instructions[0],
-          filteredSigners[0],
-          'single',
-        );
-        stopPoint = 1;
-      } else {
-        stopPoint = await sendTransactions(
-          connection,
-          wallet,
-          instructions,
-          filteredSigners,
-          SequenceType.StopOnFailure,
-          'single',
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    console.log(
-      'Died on ',
-      stopPoint,
-      'retrying from instruction',
-      instructions[stopPoint],
-      'instructions length is',
-      instructions.length,
+  if (
+    wallet.publicKey.toBase58() ==
+    auctionView.auctionManager.info.authority.toBase58()
+  ) {
+    await claimUnusedPrizes(
+      connection,
+      wallet,
+      auctionView,
+      accountsByMint,
+      signers,
+      instructions,
     );
-    lastInstructionsLength = instructions.length;
   }
+
+  await sendTransactionsWithManualRetry(
+    connection,
+    wallet,
+    instructions,
+    signers,
+  );
 }
 
 async function setupRedeemInstructions(
@@ -578,8 +540,8 @@ async function setupRedeemParticipationInstructions(
   );
 
   if (
-    participationBalance.value.uiAmount == 0 &&
-    tokenBalance.value.uiAmount == 1
+    participationBalance.value.uiAmount === 0 &&
+    tokenBalance.value.uiAmount === 1
   ) {
     // I'm the first, I need to populate for the others with a crank turn.
     let fillParticipationStashSigners: Keypair[] = [];
@@ -697,7 +659,7 @@ async function setupRedeemParticipationInstructions(
     }
   }
 
-  if (newTokenAccount && newTokenBalance == 1) {
+  if (newTokenAccount && newTokenBalance === 1) {
     await redeemPrintingToken(
       wallet,
       updateAuth,
