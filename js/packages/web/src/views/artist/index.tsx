@@ -3,8 +3,7 @@ import React from 'react';
 import Masonry from 'react-masonry-css';
 import { Link, useParams } from 'react-router-dom';
 import { ArtCard } from '../../components/ArtCard';
-import { useCreatorArts } from '../../hooks';
-import { Link } from 'react-router-dom';
+import { useCreator, useCreatorArts } from '../../hooks';
 import { CardLoader } from '../../components/MyLoader';
 // import { MetaAvatar } from '../../components/MetaAvatar';
 
