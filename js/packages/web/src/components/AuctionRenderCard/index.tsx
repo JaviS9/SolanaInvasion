@@ -53,7 +53,6 @@ export const AuctionRenderCard = (props: AuctionCard) => {
             uri={image}
             preview={false}
             files={art.files}
-            allowMeshRender
           />
         </>
       }
