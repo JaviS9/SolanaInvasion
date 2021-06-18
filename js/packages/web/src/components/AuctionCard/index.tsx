@@ -137,9 +137,9 @@ export const AuctionCard = ({
             !myPayingAccount ? (
               <Spin />
             ) : eligibleForAnything ? (
-              'Redeem bid'
+              'Claim NFT'
             ) : (
-              'Refund bid'
+              'Refund NFT'
             )}
           </Button>
 
