@@ -91,6 +91,7 @@ export const AuctionCard = ({
           </span>
         )}
         {!hideDefaultAction && connected && auctionView.auction.info.ended() && (
+          <>
           <Button
             type="primary"
             size="large"
@@ -141,6 +142,17 @@ export const AuctionCard = ({
               'Refund bid'
             )}
           </Button>
+
+          <Button
+            type="primary"
+            size="large"
+            className="action-btn"
+          >
+            <Link to={`/auction/${auctionView.auction.pubkey.toBase58()}/billing`}>
+              Claim Funds
+            </Link>
+          </Button>
+          </>
         )}
 
         {!hideDefaultAction && connected && !auctionView.auction.info.ended() && (
