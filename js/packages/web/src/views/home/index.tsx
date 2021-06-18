@@ -18,9 +18,14 @@ import { WhitelistedCreator } from '../../models/metaplex';
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
-export const HomeView = () => {
+export const HomeView = (props: {
+  expiredOnly?: boolean;
+}) => {
   const auctions = useAuctions(AuctionViewState.Live);
-  const auctionsEnded = useAuctions(AuctionViewState.Ended);
+  let auctionsEnded = useAuctions(AuctionViewState.Ended);
+  if (!props.expiredOnly) {
+    auctionsEnded = [];
+  }
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
   const connection = useConnection();
@@ -45,7 +50,7 @@ export const HomeView = () => {
   );
 
   const liveAuctions = auctions
-  .filter((e) => !e.auction.info.ended()) // TDIM: only show live auctions
+  .filter((e) => props.expiredOnly ? e.auction.info.ended() : !e.auction.info.ended()) // TDIM: only show live auctions
   .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0);
 
   const liveAuctionsView = (
@@ -123,18 +128,12 @@ export const HomeView = () => {
           }}>Init Store</Button>
         </>}
       </>}
-      <PreSaleBanner auction={heroAuction} />
+      {!props.expiredOnly && (
+        <PreSaleBanner auction={heroAuction} />
+      )}
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Col style={{ width: '100%', marginTop: 10 }}>
-            {liveAuctions.length > 1 && (<Row>
-              <Tabs>
-                <TabPane>
-                  <h2>Live Auctions</h2>
-                  {liveAuctionsView}
-                </TabPane>
-              </Tabs>
-            </Row>)}
             <Row>
               {auctionsEnded.length > 0 && (
               <Tabs>
@@ -146,6 +145,14 @@ export const HomeView = () => {
               )}
               <br />
             </Row>
+            {liveAuctions.length > 1 && (<Row>
+              <Tabs>
+                <TabPane>
+                  <h2>{props.expiredOnly ? "Expired" : "Live"} Auctions</h2>
+                  {liveAuctionsView}
+                </TabPane>
+              </Tabs>
+            </Row>)}
           </Col>
         </Content>
       </Layout>
