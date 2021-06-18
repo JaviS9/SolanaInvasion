@@ -462,6 +462,7 @@ export function MetaProvider({ children = null as any }) {
   const BLACKLISTED_CREATIONS = new Set<string>([
     "Byi68moFBwtHUoaqx4b2dQtMpn2wVWBYrnzNyEHzaH3f",
     "G2WwmSvdsPggnotN3xvrEjNRiQcFuLmhy8L38NB9rske",
+    "BWDDWben48HRiHUmLRj6yuySoQyw6XUgkC2TML41KEis",
   ]);
   const filteredMetadata = useMemo(
     () =>
