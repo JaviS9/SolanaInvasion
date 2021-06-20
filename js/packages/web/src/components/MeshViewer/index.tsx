@@ -13,6 +13,7 @@ type MeshViewerProps = {
   url?: string;
   gltf?: string;
   style?: React.CSSProperties;
+  onError?: () => void;
 };
 
 export class MeshViewer extends React.Component<
@@ -47,7 +48,7 @@ export class MeshViewer extends React.Component<
       return;
     }
     // === THREE.JS CODE START ===
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true  });
 
     const width = this.threeMountRef.current.clientWidth;
     const height = this.threeMountRef.current.clientHeight;
@@ -128,6 +129,9 @@ export class MeshViewer extends React.Component<
       },
       undefined,
       error => {
+        if (this.props.onError) {
+          this.props.onError();
+        }
         console.error(error);
       },
     );
