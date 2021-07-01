@@ -1,5 +1,5 @@
 use {
-    crate::state::{Creator, Data, Reservation},
+    crate::state::{Creator, Data, ReservationListEntryData, PREFIX, RESERVATION},
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
         instruction::{AccountMeta, Instruction},
@@ -43,17 +43,13 @@ pub struct MintPrintingTokensViaTokenArgs {
 #[repr(C)]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
 pub struct SetReservationListArgs {
-    /// If set, means that no more than this number of editions can ever be minted. This is immutable.
-    pub reservations: Vec<Reservation>,
+    pub reservation: Option<ReservationListEntryData>,
     /// should only be present on the very first call to set reservation list.
     pub total_reservation_spots: Option<u64>,
-    /// Where in the reservation list you want to insert this slice of reservations
+    /// Where in the reservation list you want to insert this slice of reservations - this is a deprecated field
+    /// used only for V2 and V1 reservations and will be totally ignored by V3 calls, as V3s dont store
+    /// entries in limited length vecs.
     pub offset: u64,
-    /// What the total spot offset is in the reservation list from the beginning to your slice of reservations.
-    /// So if is going to be 4 total editions eventually reserved between your slice and the beginning of the array,
-    /// split between 2 reservation entries, the offset variable above would be "2" since you start at entry 2 in 0 indexed array
-    /// (first 2 taking 0 and 1) and because they each have 2 spots taken, this variable would be 4.
-    pub total_spot_offset: u64,
 }
 
 /// Instructions supported by the Metadata program.
@@ -139,7 +135,12 @@ pub enum MetadataInstruction {
     ///
     ///   0. `[writable]` Master Edition key (pda of ['metadata', program id, mint id, 'edition'])
     ///   1. `[writable]` PDA for ReservationList of ['metadata', program id, master edition key, 'reservation', resource-key]
-    ///   2. `[signer]` The resource you tied the reservation list too
+    ///   2. `[writable]` PDA for ReservationListEntry of ['metadata', program id, master edition key, 'reservation', resource-key, recipient-address]
+    ///        Can be system program (all 1s) if you are not sendin gup a reservation list entry in this call.
+    ///   3. `[signer]` The resource you tied the reservation list to
+    ///   4. `[signer]` Payer
+    ///   5. `[]` System program
+    ///   6. `[]` Rent info
     SetReservationList(SetReservationListArgs),
 
     /// Create an empty reservation list for a resource who can come back later as a signer and fill the reservation list
@@ -186,6 +187,24 @@ pub enum MetadataInstruction {
     ///   5. `[]` Token program
     ///   6. `[]` Rent
     MintPrintingTokens(MintPrintingTokensViaTokenArgs),
+
+    /// Create an empty reservation list for a resource who can come back later as a signer and fill the reservation list
+    /// with reservations to ensure that people who come to get editions get the number they expect. See SetReservationList for more.
+    ///
+    /// NOTE: This instruction is identical to the previous one except that it will make a V3 version of the reservation list which
+    /// can scale beyond 200 reservations. Meant to allow older UIs to continue to use the old command(s) without breakage for a graceful
+    /// upgrade path. They will use V2 and get V2 logic throughout and new UIs will use this and get V3 logic throughout.
+    ///
+    ///   0. `[writable]` PDA for ReservationList of ['metadata', program id, master edition key, 'reservation', resource-key]
+    ///   1. `[signer]` Payer
+    ///   2. `[signer]` Update authority
+    ///   3. `[]` Master Edition key (pda of ['metadata', program id, mint id, 'edition'])
+    ///   4. `[]` A resource you wish to tie the reservation list to. This is so your later visitors who come to
+    ///       redeem can derive your reservation list PDA with something they can easily get at. You choose what this should be.
+    ///   5. `[]` Metadata key (pda of ['metadata', program id, mint id])
+    ///   6. `[]` System program
+    ///   7. `[]` Rent info
+    CreateReservationListV3,
 }
 
 /// Creates an CreateMetadataAccounts instruction
@@ -375,23 +394,44 @@ pub fn set_reservation_list(
     master_edition: Pubkey,
     reservation_list: Pubkey,
     resource: Pubkey,
-    reservations: Vec<Reservation>,
+    payer: Pubkey,
+    reservation: Option<ReservationListEntryData>,
     total_reservation_spots: Option<u64>,
     offset: u64,
-    total_spot_offset: u64,
 ) -> Instruction {
+    let entry: Pubkey;
+    if let Some(res) = &reservation {
+        let (e, _) = Pubkey::find_program_address(
+            &[
+                PREFIX.as_bytes(),
+                program_id.as_ref(),
+                master_edition.as_ref(),
+                RESERVATION.as_bytes(),
+                resource.as_ref(),
+                res.address.as_ref(),
+            ],
+            &program_id,
+        );
+        entry = e;
+    } else {
+        entry = solana_program::system_program::id();
+    }
+
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(master_edition, false),
             AccountMeta::new(reservation_list, false),
+            AccountMeta::new(entry, false),
             AccountMeta::new_readonly(resource, true),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
         data: MetadataInstruction::SetReservationList(SetReservationListArgs {
-            reservations,
+            reservation,
             total_reservation_spots,
             offset,
-            total_spot_offset,
         })
         .try_to_vec()
         .unwrap(),

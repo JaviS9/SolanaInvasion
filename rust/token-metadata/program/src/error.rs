@@ -235,10 +235,6 @@ pub enum MetadataError {
     #[error("You cannot unilaterally unverify another creator")]
     CannotUnverifyAnotherCreator,
 
-    /// In initial reservation setting, spots remaining should equal total spots
-    #[error("In initial reservation setting, spots remaining should equal total spots")]
-    SpotMismatch,
-
     /// Incorrect account owner
     #[error("Incorrect account owner")]
     IncorrectOwner,
@@ -278,6 +274,10 @@ pub enum MetadataError {
     /// You cannot splice over an existing reservation!
     #[error("You cannot splice over an existing reservation!")]
     TriedToReplaceAnExistingReservation,
+
+    /// Reservation Entry Already Made
+    #[error("This reservation entry has already been made!")]
+    ReservationEntryAlreadyMade,
 }
 
 impl PrintProgramError for MetadataError {

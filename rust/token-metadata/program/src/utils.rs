@@ -3,9 +3,10 @@ use {
         error::MetadataError,
         processor::process_create_metadata_accounts,
         state::{
-            get_reservation_list, Data, Edition, Key, MasterEdition, Metadata, EDITION,
-            MAX_CREATOR_LIMIT, MAX_EDITION_LEN, MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH,
-            PREFIX,
+            get_reservation_list, Data, Edition, Key, MasterEdition, Metadata,
+            ReservationListEntry, ReservationListEntryData, EDITION, MAX_CREATOR_LIMIT,
+            MAX_EDITION_LEN, MAX_NAME_LENGTH, MAX_RESERVATION_LIST_ENTRY_SIZE, MAX_SYMBOL_LENGTH,
+            MAX_URI_LENGTH, PREFIX, RESERVATION,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -621,4 +622,75 @@ pub fn try_from_slice_checked<T: BorshDeserialize>(
     let result: T = try_from_slice_unchecked(data)?;
 
     Ok(result)
+}
+
+pub struct CreateReservationListEntryArgs<'a> {
+    pub program_id: &'a Pubkey,
+    pub reservation_list_info: &'a AccountInfo<'a>,
+    pub master_edition_info: &'a AccountInfo<'a>,
+    pub resource_info: &'a AccountInfo<'a>,
+    pub reservation: ReservationListEntryData,
+    pub rent_info: &'a AccountInfo<'a>,
+    pub system_program_info: &'a AccountInfo<'a>,
+    pub payer_info: &'a AccountInfo<'a>,
+    pub reservation_list_entry_info: &'a AccountInfo<'a>,
+}
+
+pub fn create_reservation_list_entry(args: CreateReservationListEntryArgs) -> ProgramResult {
+    let CreateReservationListEntryArgs {
+        program_id,
+        reservation_list_info,
+        master_edition_info,
+        resource_info,
+        reservation,
+        rent_info,
+        system_program_info,
+        payer_info,
+        reservation_list_entry_info,
+    } = args;
+
+    if !reservation_list_entry_info.data_is_empty() {
+        return Err(MetadataError::ReservationEntryAlreadyMade.into());
+    }
+
+    let bump = assert_derivation(
+        program_id,
+        reservation_list_info,
+        &[
+            PREFIX.as_bytes(),
+            program_id.as_ref(),
+            master_edition_info.key.as_ref(),
+            RESERVATION.as_bytes(),
+            resource_info.key.as_ref(),
+            reservation.address.as_ref(),
+        ],
+    )?;
+
+    let seeds = &[
+        PREFIX.as_bytes(),
+        program_id.as_ref(),
+        master_edition_info.key.as_ref(),
+        RESERVATION.as_bytes(),
+        resource_info.key.as_ref(),
+        reservation.address.as_ref(),
+        &[bump],
+    ];
+
+    create_or_allocate_account_raw(
+        *program_id,
+        reservation_list_entry_info,
+        rent_info,
+        system_program_info,
+        payer_info,
+        MAX_RESERVATION_LIST_ENTRY_SIZE,
+        seeds,
+    )?;
+    let mut reservation_entry =
+        ReservationListEntry::from_account_info(reservation_list_entry_info)?;
+
+    reservation_entry.key = Key::ReservationListEntry;
+    reservation_entry.data = reservation;
+    reservation_entry.serialize(&mut *reservation_list_entry_info.data.borrow_mut())?;
+
+    Ok(())
 }

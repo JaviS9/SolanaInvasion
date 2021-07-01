@@ -46,7 +46,11 @@ pub const MAX_RESERVATIONS: usize = 200;
 pub const MAX_RESERVATION_LIST_V1_SIZE: usize = 1 + 32 + 8 + 8 + MAX_RESERVATIONS * 34 + 100;
 
 // can hold up to 200 keys per reservation, note: the extra 8 is for number of elements in the vec
-pub const MAX_RESERVATION_LIST_SIZE: usize = 1 + 32 + 8 + 8 + MAX_RESERVATIONS * 48 + 8 + 8 + 84;
+pub const MAX_RESERVATION_LIST_V2_SIZE: usize = 1 + 32 + 8 + 8 + MAX_RESERVATIONS * 48 + 8 + 8 + 84;
+
+pub const MAX_RESERVATION_LIST_SIZE: usize = 1 + 32 + 9 + 8 + 8 + 100;
+
+pub const MAX_RESERVATION_LIST_ENTRY_SIZE: usize = 1 + 32 + 8 + 8 + 8 + 50;
 
 #[repr(C)]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
@@ -57,6 +61,8 @@ pub enum Key {
     ReservationListV1,
     MetadataV1,
     ReservationListV2,
+    ReservationListV3,
+    ReservationListEntry,
 }
 #[repr(C)]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
@@ -195,8 +201,88 @@ pub fn get_reservation_list(
     match version {
         3 => return Ok(Box::new(ReservationListV1::from_account_info(account)?)),
         5 => return Ok(Box::new(ReservationListV2::from_account_info(account)?)),
+        6 => return Ok(Box::new(ReservationListV3::from_account_info(account)?)),
+
         _ => return Err(MetadataError::DataTypeMismatch.into()),
     };
+}
+
+#[repr(C)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
+pub struct ReservationListV3 {
+    pub key: Key,
+    /// Present for reverse lookups
+    pub master_edition: Pubkey,
+
+    /// What supply counter was on master_edition when this reservation was created.
+    pub supply_snapshot: Option<u64>,
+    /// How many reservations there are going to be, given on first set_reservation call
+    pub total_reservation_spots: u64,
+    /// Cached count of reservation spots in the reservation vec to save on CPU.
+    pub current_reservation_spots: u64,
+}
+
+impl ReservationList for ReservationListV3 {
+    fn master_edition(&self) -> Pubkey {
+        self.master_edition
+    }
+
+    fn supply_snapshot(&self) -> Option<u64> {
+        self.supply_snapshot
+    }
+
+    fn reservations(&self) -> Vec<Reservation> {
+        vec![]
+    }
+
+    fn set_master_edition(&mut self, key: Pubkey) {
+        self.master_edition = key
+    }
+
+    fn set_supply_snapshot(&mut self, supply: Option<u64>) {
+        self.supply_snapshot = supply;
+    }
+
+    fn add_reservations(&mut self, _: Vec<Reservation>, _: u64, _: u64) -> ProgramResult {
+        Ok(())
+    }
+
+    fn set_reservations(&mut self, _: Vec<Reservation>) -> ProgramResult {
+        Ok(())
+    }
+
+    fn save(&self, account: &AccountInfo) -> ProgramResult {
+        self.serialize(&mut *account.data.borrow_mut())?;
+        Ok(())
+    }
+
+    fn total_reservation_spots(&self) -> u64 {
+        self.total_reservation_spots
+    }
+
+    fn set_total_reservation_spots(&mut self, total_reservation_spots: u64) {
+        self.total_reservation_spots = total_reservation_spots;
+    }
+
+    fn current_reservation_spots(&self) -> u64 {
+        self.current_reservation_spots
+    }
+
+    fn set_current_reservation_spots(&mut self, current_reservation_spots: u64) {
+        self.current_reservation_spots = current_reservation_spots;
+    }
+}
+
+impl ReservationListV3 {
+    pub fn from_account_info(a: &AccountInfo) -> Result<ReservationListV3, ProgramError> {
+        let res: ReservationListV3 = try_from_slice_checked(
+            &a.data.borrow_mut(),
+            Key::ReservationListV3,
+            MAX_RESERVATION_LIST_SIZE,
+        )?;
+
+        Ok(res)
+    }
 }
 
 #[repr(C)]
@@ -311,7 +397,7 @@ impl ReservationListV2 {
         let res: ReservationListV2 = try_from_slice_checked(
             &a.data.borrow_mut(),
             Key::ReservationListV2,
-            MAX_RESERVATION_LIST_SIZE,
+            MAX_RESERVATION_LIST_V2_SIZE,
         )?;
 
         Ok(res)
@@ -426,4 +512,33 @@ pub struct ReservationV1 {
     pub address: Pubkey,
     pub spots_remaining: u8,
     pub total_spots: u8,
+}
+
+#[repr(C)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
+pub struct ReservationListEntryData {
+    pub address: Pubkey,
+    /// Offset from the supply_snapshot on the main reservation list
+    pub offset: u64,
+    pub spots_remaining: u64,
+    pub total_spots: u64,
+}
+
+#[repr(C)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
+pub struct ReservationListEntry {
+    pub key: Key,
+    pub data: ReservationListEntryData,
+}
+
+impl ReservationListEntry {
+    pub fn from_account_info(a: &AccountInfo) -> Result<ReservationListEntry, ProgramError> {
+        let me: ReservationListEntry = try_from_slice_checked(
+            &a.data.borrow_mut(),
+            Key::ReservationListEntry,
+            MAX_RESERVATION_LIST_ENTRY_SIZE,
+        )?;
+
+        Ok(me)
+    }
 }

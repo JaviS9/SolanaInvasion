@@ -4,16 +4,18 @@ use {
         instruction::MetadataInstruction,
         state::{
             get_reservation_list, Data, Key, MasterEdition, Metadata, Reservation,
-            ReservationListV2, EDITION, MAX_MASTER_EDITION_LEN, MAX_METADATA_LEN, MAX_RESERVATIONS,
-            MAX_RESERVATION_LIST_SIZE, PREFIX, RESERVATION,
+            ReservationListEntryData, ReservationListV2, ReservationListV3, EDITION,
+            MAX_MASTER_EDITION_LEN, MAX_METADATA_LEN, MAX_RESERVATIONS, MAX_RESERVATION_LIST_SIZE,
+            MAX_RESERVATION_LIST_V2_SIZE, PREFIX, RESERVATION,
         },
         utils::{
             assert_data_valid, assert_derivation, assert_initialized,
             assert_mint_authority_matches_mint, assert_owned_by, assert_rent_exempt, assert_signer,
             assert_supply_invariance, assert_token_program_matches_package,
             assert_update_authority_is_correct, create_or_allocate_account_raw,
-            mint_limited_edition, spl_token_burn, spl_token_mint_to, transfer_mint_authority,
-            TokenBurnParams, TokenMintToParams,
+            create_reservation_list_entry, mint_limited_edition, spl_token_burn, spl_token_mint_to,
+            transfer_mint_authority, CreateReservationListEntryArgs, TokenBurnParams,
+            TokenMintToParams,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -29,9 +31,9 @@ use {
     spl_token::state::{Account, Mint},
 };
 
-pub fn process_instruction(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
+pub fn process_instruction<'a>(
+    program_id: &'a Pubkey,
+    accounts: &'a [AccountInfo<'a>],
     input: &[u8],
 ) -> ProgramResult {
     let instruction = MetadataInstruction::try_from_slice(input)?;
@@ -73,15 +75,14 @@ pub fn process_instruction(
             process_set_reservation_list(
                 program_id,
                 accounts,
-                args.reservations,
+                args.reservation,
                 args.total_reservation_spots,
                 args.offset,
-                args.total_spot_offset,
             )
         }
         MetadataInstruction::CreateReservationList => {
             msg!("Instruction: Create Reservation List");
-            process_create_reservation_list(program_id, accounts)
+            process_create_reservation_list(program_id, accounts, false)
         }
         MetadataInstruction::SignMetadata => {
             msg!("Instruction: Sign Metadata");
@@ -94,6 +95,10 @@ pub fn process_instruction(
         MetadataInstruction::MintPrintingTokens(args) => {
             msg!("Instruction: Mint Printing Tokens");
             process_mint_printing_tokens(program_id, accounts, args.supply)
+        }
+        MetadataInstruction::CreateReservationListV3 => {
+            msg!("Instruction: Create Reservation List V3");
+            process_create_reservation_list(program_id, accounts, true)
         }
     }
 }
@@ -469,6 +474,7 @@ pub fn process_update_primary_sale_happened_via_token(
 pub fn process_create_reservation_list(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
+    use_v3: bool,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
@@ -523,40 +529,61 @@ pub fn process_create_reservation_list(
         &[bump],
     ];
 
-    create_or_allocate_account_raw(
-        *program_id,
-        reservation_list_info,
-        rent_info,
-        system_program_info,
-        payer_info,
-        MAX_RESERVATION_LIST_SIZE,
-        seeds,
-    )?;
-    let mut reservation = ReservationListV2::from_account_info(reservation_list_info)?;
+    if use_v3 {
+        create_or_allocate_account_raw(
+            *program_id,
+            reservation_list_info,
+            rent_info,
+            system_program_info,
+            payer_info,
+            MAX_RESERVATION_LIST_SIZE,
+            seeds,
+        )?;
+        let mut reservation = ReservationListV3::from_account_info(reservation_list_info)?;
 
-    reservation.key = Key::ReservationListV2;
-    reservation.master_edition = *master_edition_info.key;
-    reservation.supply_snapshot = None;
-    reservation.reservations = vec![];
+        reservation.key = Key::ReservationListV3;
+        reservation.master_edition = *master_edition_info.key;
+        reservation.supply_snapshot = None;
 
-    reservation.serialize(&mut *reservation_list_info.data.borrow_mut())?;
+        reservation.serialize(&mut *reservation_list_info.data.borrow_mut())?;
+    } else {
+        create_or_allocate_account_raw(
+            *program_id,
+            reservation_list_info,
+            rent_info,
+            system_program_info,
+            payer_info,
+            MAX_RESERVATION_LIST_V2_SIZE,
+            seeds,
+        )?;
+        let mut reservation = ReservationListV2::from_account_info(reservation_list_info)?;
+
+        reservation.key = Key::ReservationListV2;
+        reservation.master_edition = *master_edition_info.key;
+        reservation.supply_snapshot = None;
+
+        reservation.serialize(&mut *reservation_list_info.data.borrow_mut())?;
+    }
 
     Ok(())
 }
 
-pub fn process_set_reservation_list(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    reservations: Vec<Reservation>,
+pub fn process_set_reservation_list<'a>(
+    program_id: &'a Pubkey,
+    accounts: &'a [AccountInfo<'a>],
+    reservation: Option<ReservationListEntryData>,
     total_reservation_spots: Option<u64>,
     offset: u64,
-    total_spot_offset: u64,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
     let master_edition_info = next_account_info(account_info_iter)?;
     let reservation_list_info = next_account_info(account_info_iter)?;
+    let reservation_list_entry_info = next_account_info(account_info_iter)?;
     let resource_info = next_account_info(account_info_iter)?;
+    let payer_info = next_account_info(account_info_iter)?;
+    let system_program_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
 
     assert_signer(resource_info)?;
     assert_owned_by(master_edition_info, program_id)?;
@@ -586,25 +613,45 @@ pub fn process_set_reservation_list(
         return Err(MetadataError::ReservationAlreadyMade.into());
     }
 
-    let mut total_len: u64 = reservation_list.current_reservation_spots();
-    let mut total_len_check: u64 = reservation_list.current_reservation_spots();
+    let total_len: u64 = reservation_list.current_reservation_spots();
 
-    for reservation in &reservations {
-        total_len = total_len
-            .checked_add(reservation.spots_remaining)
-            .ok_or(MetadataError::NumericalOverflowError)?;
-        total_len_check = total_len_check
-            .checked_add(reservation.total_spots)
-            .ok_or(MetadataError::NumericalOverflowError)?;
-        if reservation.spots_remaining != reservation.total_spots {
+    if let Some(res) = reservation {
+        if res.spots_remaining != res.total_spots {
             return Err(
                 MetadataError::ReservationSpotsRemainingShouldMatchTotalSpotsAtStart.into(),
             );
         }
-    }
-    reservation_list.set_current_reservation_spots(total_len);
 
-    reservation_list.add_reservations(reservations, offset, total_spot_offset)?;
+        reservation_list.set_current_reservation_spots(
+            total_len
+                .checked_add(res.total_spots)
+                .ok_or(MetadataError::NumericalOverflowError)?,
+        );
+
+        if reservation_list_info.data.borrow()[0] == Key::ReservationListV3 as u8 {
+            create_reservation_list_entry(CreateReservationListEntryArgs {
+                program_id,
+                reservation_list_info,
+                master_edition_info,
+                resource_info,
+                reservation: res,
+                rent_info,
+                system_program_info,
+                payer_info,
+                reservation_list_entry_info,
+            })?;
+        } else {
+            reservation_list.add_reservations(
+                vec![Reservation {
+                    address: res.address,
+                    spots_remaining: res.spots_remaining,
+                    total_spots: res.total_spots,
+                }],
+                offset,
+                res.offset,
+            )?;
+        }
+    }
 
     if let Some(total) = total_reservation_spots {
         reservation_list.set_supply_snapshot(Some(master_edition.supply));
@@ -622,11 +669,7 @@ pub fn process_set_reservation_list(
         master_edition.serialize(&mut *master_edition_info.data.borrow_mut())?;
     }
 
-    if total_len_check != total_len {
-        return Err(MetadataError::SpotMismatch.into());
-    }
-
-    if total_len > reservation_list.total_reservation_spots() {
+    if reservation_list.current_reservation_spots() > reservation_list.total_reservation_spots() {
         return Err(MetadataError::BeyondAlottedAddressSize.into());
     };
 
