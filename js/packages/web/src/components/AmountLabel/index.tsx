@@ -5,11 +5,11 @@ import { formatUSD } from '@oyster/common'
 import './index.less';
 
 interface IAmountLabel {
-  amount: number | string,
-  displayUSD?: boolean,
-  title?: string,
-  style?: object,
-  containerStyle?: object,
+  amount: number | string;
+  displayUSD?: boolean;
+  title?: string;
+  style?: object;
+  containerStyle?: object;
 }
 
 export const AmountLabel = (props: IAmountLabel) => {
@@ -27,7 +27,7 @@ export const AmountLabel = (props: IAmountLabel) => {
   const PriceNaN = isNaN(amount);
 
   return <div style={{ display: 'flex', ...containerStyle }}>
-    {PriceNaN == false &&
+    {PriceNaN === false &&
       (<Statistic
         style={style}
         className="create-statistic"
@@ -38,7 +38,7 @@ export const AmountLabel = (props: IAmountLabel) => {
     }
     {displayUSD &&
       <div className="usd">
-        {PriceNaN == false ? formatUSD.format(priceUSD || 0) :
+        {PriceNaN === false ? formatUSD.format(priceUSD || 0) :
           <div className="placebid">Place Bid</div>}
       </div>
     }

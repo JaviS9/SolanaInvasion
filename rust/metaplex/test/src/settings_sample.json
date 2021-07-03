@@ -1,0 +1,14 @@
+{
+  "winning_configs": [
+    {
+      "items": [
+        {
+          "safety_deposit_box_index": 0,
+          "amount": 1,
+          "winning_config_type": 0
+        }
+      ]
+    }
+  ],
+  "participation_config": null
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { Card, CardProps, Button, Badge } from 'antd';
 import { MetadataCategory } from '@oyster/common';
 import { ArtContent } from './../ArtContent';
@@ -12,10 +12,12 @@ const { Meta } = Card;
 
 export interface ArtCardProps extends CardProps {
   pubkey?: PublicKey;
+
   image?: string;
-  file?: string;
-  blob?: Blob;
+  animationURL?: string;
+
   category?: MetadataCategory;
+
   name?: string;
   symbol?: string;
   description?: string;
@@ -23,7 +25,6 @@ export interface ArtCardProps extends CardProps {
   preview?: boolean;
   small?: boolean;
   close?: () => void;
-  endAuctionAt?: number;
   height?: number;
   width?: number;
 }
@@ -34,7 +35,7 @@ export const ArtCard = (props: ArtCardProps) => {
     small,
     category,
     image,
-    file,
+    animationURL,
     name,
     preview,
     creators,
@@ -46,11 +47,8 @@ export const ArtCard = (props: ArtCardProps) => {
     ...rest
   } = props;
   const art = useArt(pubkey);
-  category = art?.category || category;
-  image = art?.image || image;
   creators = art?.creators || creators || [];
   name = art?.title || name || ' ';
-  description = art?.about || description;
 
   let badge = '';
   if (art.type === ArtType.NFT) {
@@ -81,10 +79,12 @@ export const ArtCard = (props: ArtCardProps) => {
             </Button>
           )}
           <ArtContent
-            category={category}
-            extension={file || image}
-            files={art.files}
+            pubkey={pubkey}
+
             uri={image}
+            animationURL={animationURL}
+            category={category}
+
             preview={preview}
             height={height}
             width={width}
@@ -93,7 +93,7 @@ export const ArtCard = (props: ArtCardProps) => {
       }
       {...rest}
     >
-      <Meta
+     <Meta
         title={`${name}`}
         description={
           <>

@@ -22,7 +22,7 @@ export const ArtworksView = () => {
   const { connected } = useWallet();
   const ownedMetadata = useUserArts();
   const { metadata, isLoading } = useMeta();
-  const [activeKey, setActiveKey] = useState(ArtworkViewState.Owned);
+  const [activeKey, setActiveKey] = useState(ArtworkViewState.Metaplex);
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -58,8 +58,8 @@ export const ArtworksView = () => {
                   key={id}
                   pubkey={m.pubkey}
                   preview={false}
-                  height={250}
-                  width={250}
+                  height={200}
+                  width={200}
                 />
               </Link>
             );
@@ -77,6 +77,12 @@ export const ArtworksView = () => {
               activeKey={activeKey}
               onTabClick={key => setActiveKey(key as ArtworkViewState)}
             >
+              <TabPane
+                tab={<span className="tab-title">All</span>}
+                key={ArtworkViewState.Metaplex}
+              >
+                {artworkGrid}
+              </TabPane>
               {connected && (
                 <TabPane
                   tab={<span className="tab-title">Owned</span>}
@@ -93,12 +99,6 @@ export const ArtworksView = () => {
                   {artworkGrid}
                 </TabPane>
               )}
-              <TabPane
-                tab={<span className="tab-title">All</span>}
-                key={ArtworkViewState.Metaplex}
-              >
-                {artworkGrid}
-              </TabPane>
             </Tabs>
           </Row>
         </Col>

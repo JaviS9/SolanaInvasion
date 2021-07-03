@@ -1,10 +1,12 @@
-import React, { Ref, useEffect, useState } from 'react';
+import React, { Ref, useCallback, useEffect, useState } from 'react';
 import { Image } from 'antd';
-import { MetadataCategory } from '@oyster/common';
+import { MetadataCategory, MetadataFile } from '@oyster/common';
 import { MeshViewer } from '../MeshViewer';
 import { ThreeDots } from '../MyLoader';
-import { useCachedImage } from '../../hooks';
+import { useCachedImage, useExtendedArt } from '../../hooks';
 import { Stream, StreamPlayerApi } from '@cloudflare/stream-react';
+import { PublicKey } from '@solana/web3.js';
+import { getLast } from '../../utils/utils';
 
 const HACK_LOOKUP: Record<string, string> = {
   'https://arweave.net/DZQLWAoc6MhpGoooFMrFF5okwUUwp034mtyrkzdFGfg':
@@ -27,92 +29,53 @@ const HACK_LOOKUP: Record<string, string> = {
     '3e5eadb976fab8fe7330a760941a960f',
 };
 
-export const ArtContent = ({
+const MeshArtContent = ({
   uri,
-  extension,
-  category,
+  animationUrl,
   className,
-  preview,
   style,
   files,
-  active
 }: {
-  category?: MetadataCategory;
-  extension?: string;
   uri?: string;
+  animationUrl?: string;
   className?: string;
-  preview?: boolean;
   style?: React.CSSProperties;
-  width?: number;
-  height?: number;
-  files?: string[];
-  ref?: Ref<HTMLDivElement>;
-  active?: boolean;
+  files?: (MetadataFile | string)[];
 }) => {
-  const [loaded, setLoaded] = useState<boolean>(false);
-  const playerApiRef = React.useRef<StreamPlayerApi>(null);
-  const src = useCachedImage(uri || '');
+  const renderURL = files && files.length > 0 && typeof files[0] === 'string'  ? files[0] : animationUrl;
+  const { isLoading } = useCachedImage(renderURL || '', true);
 
-  useEffect(() => {
-    if (playerApiRef.current) {
-      playerApiRef.current.currentTime = 0;
-
-      if (active === undefined) {
-        playerApiRef.current.muted = true;
-        playerApiRef.current?.play();
-      } else {
-        if (active) {
-          playerApiRef.current.muted = false;
-          playerApiRef.current.play();
-        } else {
-          playerApiRef.current.pause();
-        }
-      }
-    }
-  }, [active]);
-
-  if (extension?.endsWith('.glb') || category === 'vr') {
-    return <MeshViewer url={uri} className={className} style={style} />;
+  if (isLoading) {
+    return <CachedImageContent
+      uri={uri}
+      className={className}
+      preview={false}
+      style={{ width: 300, ...style }}/>;
   }
   const likelyVideo = (files || []).filter((f, index, arr) => {
     // TODO: filter by fileType
     return arr.length >= 2 ? index === 1 : index === 0;
   })[0];
 
-  return category === 'video' ? (
-    HACK_LOOKUP[likelyVideo] ? (
-      <div className={`${className} square`}>
-        <Stream
-          streamRef={playerApiRef}
-          src={HACK_LOOKUP[likelyVideo]}
-          loop={true}
-          height={600}
-          width={600}
-          controls={false}
-          videoDimensions={{
-            videoHeight: 600,
-            videoWidth: 600,
-          }}
-        />
-      </div>
-    ) : (
-      <video
-        className={className}
-        playsInline={true}
-        autoPlay={false}
-        muted={true}
-        controls={true}
-        controlsList="nodownload"
-        style={style}
-        loop={true}
-        poster={extension}
-      >
-        <source src={likelyVideo} type="video/mp4" style={style} />
-      </video>
-    )
-  ) : (
-    <Image
-      src={src}
+  return <MeshViewer url={renderURL} className={className} style={style} />;
+}
+
+const CachedImageContent = ({
+  uri,
+  className,
+  preview,
+  style,
+}: {
+  uri?: string;
+  className?: string;
+  preview?: boolean;
+  style?: React.CSSProperties;
+}) => {
+  const [loaded, setLoaded] = useState<boolean>(false);
+  const { cachedBlob } = useCachedImage(uri || '');
+
+  return <Image
+      src={cachedBlob}
       preview={preview}
       wrapperClassName={className}
       loading="lazy"
@@ -123,5 +86,164 @@ export const ArtContent = ({
       placeholder={<ThreeDots />}
       {...(loaded ? {} : { height: 200 })}
     />
+}
+
+const VideoArtContent = ({
+  className,
+  style,
+  files,
+  uri,
+  animationURL,
+  active,
+  width,
+  height,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  files?: (MetadataFile | string)[];
+  uri?: string;
+  animationURL?: string;
+  active?: boolean;
+  width?: number;
+  height?: number;
+}) => {
+  const [playerApi, setPlayerApi] = useState<StreamPlayerApi>();
+
+  const playerRef = useCallback(
+    ref => {
+      setPlayerApi(ref);
+    },
+    [setPlayerApi],
   );
+
+  useEffect(() => {
+    if (playerApi) {
+      playerApi.currentTime = 0;
+    }
+  }, [active, playerApi]);
+
+  const likelyVideo = (files || []).filter((f, index, arr) => {
+    if(typeof f !== 'string') {
+      return false;
+    }
+
+    // TODO: filter by fileType
+    return arr.length >= 2 ? index === 1 : index === 0;
+  })?.[0] as string;
+
+  const content = (
+    HACK_LOOKUP[likelyVideo] || likelyVideo && likelyVideo.startsWith('https://watch.videodelivery.net/') ? (
+      <div className={`${className} square`} style={{ height, width }}>
+        <Stream
+          streamRef={(e: any) => playerRef(e)}
+          src={HACK_LOOKUP[likelyVideo] || likelyVideo.replace('https://watch.videodelivery.net/', '')}
+          loop={true}
+          height={600}
+          width={600}
+          controls={false}
+          videoDimensions={{
+            videoHeight: 700,
+            videoWidth: 400,
+          }}
+          autoplay={true}
+          muted={true}
+        />
+      </div>
+    ) : (
+      <video
+        className={className}
+        playsInline={true}
+        autoPlay={true}
+        muted={true}
+        controls={true}
+        controlsList="nodownload"
+        style={style}
+        loop={true}
+        poster={uri}
+      >
+        {likelyVideo && <source src={likelyVideo} type="video/mp4" style={style} />}
+        {animationURL && <source src={animationURL} type="video/mp4" style={style} />}
+        {files?.filter(f => typeof f !== 'string').map((f: any) => <source src={f.uri} type={f.type} style={style} />)}
+      </video>
+    )
+  );
+
+
+
+  return content;
+};
+
+
+export const ArtContent = ({
+  category,
+  className,
+  preview,
+  style,
+  active,
+  allowMeshRender,
+  pubkey,
+
+  uri,
+  animationURL,
+  files,
+  height,
+  width,
+}: {
+  category?: MetadataCategory;
+  className?: string;
+  preview?: boolean;
+  style?: React.CSSProperties;
+  width?: number;
+  height?: number;
+  ref?: Ref<HTMLDivElement>;
+  active?: boolean;
+  allowMeshRender?: boolean;
+  pubkey?: PublicKey | string,
+  uri?: string;
+  animationURL?: string;
+  files?: (MetadataFile | string)[];
+}) => {
+  const id = typeof pubkey === 'string' ? pubkey : pubkey?.toBase58() || '';
+
+  const { ref, data } = useExtendedArt(id);
+
+  if(pubkey && data) {
+    files = data.properties.files;
+    uri = data.image;
+    animationURL = data.animation_url;
+    category = data.properties.category;
+  }
+
+  animationURL = animationURL || '';
+
+  const animationUrlExt = new URLSearchParams(getLast(animationURL.split("?"))).get("ext");
+
+  if (allowMeshRender && (category === 'vr' || animationUrlExt === 'glb' || animationUrlExt === 'gltf')) {
+    return <MeshArtContent
+      uri={uri}
+      animationUrl={animationURL}
+      className={className}
+      style={style}
+      files={files}/>;
+  }
+
+  const content = category === 'video' ? (
+    <VideoArtContent
+      className={className}
+      style={style}
+      files={files}
+      uri={uri}
+      animationURL={animationURL}
+      active={active}
+      height={height}
+      width={width}
+    />
+  ) : (
+    <CachedImageContent uri={uri}
+      className={className}
+      preview={preview}
+      style={style}/>
+  );
+
+  return <div ref={ref as any} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{content}</div>;
 };

@@ -8,13 +8,12 @@ import {
   updateMetadata,
   createMasterEdition,
   sendTransactionWithRetry,
-  createTokenAccount,
   Data,
   Creator,
-  MetadataCategory,
+  findProgramAddress,
 } from '@oyster/common';
 import React from 'react';
-import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
+import { MintLayout, Token } from '@solana/spl-token';
 import { WalletAdapter } from '@solana/wallet-base';
 import {
   Keypair,
@@ -92,6 +91,7 @@ export const mintNFT = async (
     symbol: string;
     description: string;
     image: string | undefined;
+    animation_url: string | undefined;
     external_url: string;
     properties: any;
     creators: Creator[] | null;
@@ -104,46 +104,31 @@ export const mintNFT = async (
   if (!wallet?.publicKey) {
     return;
   }
-  //@ts-ignore
-  const ono = metadata.creators.find(
-    c => c.address.toBase58() == 'onogkB6qRYoM21nWjMyiiP2g2xiEAMkMpf4GmQNxJYs',
-  );
-  if (ono) ono.share = 16;
-  //@ts-ignore
-  const one = metadata.creators.find(
-    c => c.address.toBase58() == '5NVNLQ4b8MauvQFQ1HWGciT7mNwFegbGF4yasPvTAPbD',
-  );
-  if (one) one.share = 42;
-  //@ts-ignore
-  const two = metadata.creators.find(
-    c => c.address.toBase58() == 'H1pqWLQS5EHudX6ueHJjFVoYr5vD47iZoGtAudT618zj',
-  );
-  if (two) two.share = 42;
+
+  const metadataContent = {
+    name: metadata.name,
+    symbol: metadata.symbol,
+    description: metadata.description,
+    seller_fee_basis_points: metadata.sellerFeeBasisPoints,
+    image: metadata.image,
+    animation_url: metadata.animation_url,
+    external_url: metadata.external_url,
+    properties: {
+      ...metadata.properties,
+      creators: metadata.creators?.map(creator => {
+        return {
+          address: creator.address.toBase58(),
+          share: creator.share,
+        };
+      }),
+    },
+  };
+
   const realFiles: File[] = [
     ...files,
     new File(
       [
-        JSON.stringify({
-          name: metadata.name,
-          symbol: metadata.symbol,
-          description: metadata.description,
-          seller_fee_basis_points: metadata.sellerFeeBasisPoints,
-          image: metadata.image,
-          external_url: metadata.external_url,
-          properties: {
-            ...metadata.properties,
-            category: MetadataCategory.Video,
-            files: [...metadata.properties.files, ...URL[9]],
-            fileTypes: ['metadata', 'image', 'h.264', 'raw'],
-            creators: metadata.creators?.map(creator => {
-              return {
-                address: creator.address.toBase58(),
-                verified: creator.verified,
-                share: creator.share,
-              };
-            }),
-          },
-        }),
+        JSON.stringify(metadataContent),
       ],
       'metadata.json',
     ),
@@ -158,9 +143,9 @@ export const mintNFT = async (
   const mintRent = await connection.getMinimumBalanceForRentExemption(
     MintLayout.span,
   );
-  const accountRent = await connection.getMinimumBalanceForRentExemption(
-    AccountLayout.span,
-  );
+  // const accountRent = await connection.getMinimumBalanceForRentExemption(
+  //   AccountLayout.span,
+  // );
 
   // This owner is a temporary signer and owner of metadata we use to circumvent requesting signing
   // twice post Arweave. We store in an account (payer) and use it post-Arweave to update MD with new link
@@ -183,7 +168,7 @@ export const mintNFT = async (
   );
 
   const recipientKey: PublicKey = (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         wallet.publicKey.toBuffer(),
         programIds().token.toBuffer(),
@@ -201,22 +186,11 @@ export const mintNFT = async (
     mintKey,
   );
 
-  instructions.push(
-    Token.createMintToInstruction(
-      TOKEN_PROGRAM_ID,
-      mintKey,
-      recipientKey,
-      payerPublicKey,
-      [],
-      1,
-    ),
-  );
-
   const metadataAccount = await createMetadata(
     new Data({
       symbol: metadata.symbol,
       name: metadata.name,
-      uri: `https://-------.---/rfX69WKd7Bin_RTbcnH4wM3BuWWsR_ZhWSSqZBLYdMY`,
+      uri: ' '.repeat(64), // size of url for arweave
       sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
       creators: metadata.creators,
     }),
@@ -273,9 +247,9 @@ export const mintNFT = async (
   const result: IArweaveResult = await (
     await fetch(
       // TODO: add CNAME
-      env === 'mainnet-beta'
-        ? 'https://us-central1-principal-lane-200702.cloudfunctions.net/uploadFileProd-1'
-        : 'https://us-central1-principal-lane-200702.cloudfunctions.net/uploadFile-1',
+      env.startsWith('mainnet-beta')
+        ? 'https://us-central1-principal-lane-200702.cloudfunctions.net/uploadFileProd2'
+        : 'https://us-central1-principal-lane-200702.cloudfunctions.net/uploadFile2',
       {
         method: 'POST',
         body: data,
@@ -308,7 +282,18 @@ export const mintNFT = async (
       metadataAccount,
     );
 
-    // // This mint, which allows limited editions to be made, stays with user's wallet.
+    updateInstructions.push(
+      Token.createMintToInstruction(
+        TOKEN_PROGRAM_ID,
+        mintKey,
+        recipientKey,
+        payerPublicKey,
+        [],
+        1,
+      ),
+    );
+
+    // This mint, which allows limited editions to be made, stays with user's wallet.
     const printingMint = createMint(
       updateInstructions,
       payerPublicKey,
@@ -332,7 +317,7 @@ export const mintNFT = async (
     if (maxSupply !== undefined) {
       // make this so we can use it later.
       const authTokenAccount: PublicKey = (
-        await PublicKey.findProgramAddress(
+        await findProgramAddress(
           [
             wallet.publicKey.toBuffer(),
             programIds().token.toBuffer(),
@@ -363,6 +348,7 @@ export const mintNFT = async (
       payerPublicKey,
       maxSupply !== undefined ? payerPublicKey : undefined,
     );
+
     // TODO: enable when using payer account to avoid 2nd popup
     /*  if (maxSupply !== undefined)
       updateInstructions.push(
@@ -393,7 +379,7 @@ export const mintNFT = async (
     notify({
       message: 'Art created on Solana',
       description: (
-        <a href={arweaveLink} target="_blank">
+        <a href={arweaveLink} target="_blank" rel="noopener noreferrer">
           Arweave Link
         </a>
       ),

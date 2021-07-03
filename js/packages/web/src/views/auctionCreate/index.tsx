@@ -9,7 +9,6 @@ import {
   Statistic,
   Progress,
   Spin,
-  InputNumber,
   Radio,
   Card,
   Select,
@@ -29,8 +28,15 @@ import {
   toLamports,
   useMint,
   Creator,
+  PriceFloor,
+  PriceFloorType,
+  IPartialCreateAuctionArgs,
 } from '@oyster/common';
-import { Connection, PublicKey } from '@solana/web3.js';
+import {
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
 import { capitalize } from 'lodash';
@@ -42,7 +48,6 @@ import {
   WinningConstraint,
   ParticipationConfig,
   WinningConfigItem,
-  WinningConfigState,
 } from '../../models/metaplex';
 import moment from 'moment';
 import {
@@ -59,7 +64,6 @@ import { PlusCircleOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { Step } = Steps;
-const { TextArea } = Input;
 
 export enum AuctionCategory {
   Limited,
@@ -85,6 +89,7 @@ export interface AuctionState {
   // listed NFTs
   items: SafetyDepositDraft[];
   participationNFT?: SafetyDepositDraft;
+  participationFixedPrice?: number;
   // number of editions for this auction (only applicable to limited edition)
   editions?: number;
 
@@ -171,7 +176,9 @@ export const AuctionCreateView = () => {
           safetyDepositBoxIndex: 0,
           winnerConstraint: WinningConstraint.ParticipationPrizeGiven,
           nonWinningConstraint: NonWinningConstraint.GivenForFixedPrice,
-          fixedPrice: new BN(toLamports(attributes.priceFloor, mint) || 0),
+          fixedPrice: new BN(
+            toLamports(attributes.participationFixedPrice, mint) || 0,
+          ),
         }),
       });
 
@@ -226,7 +233,9 @@ export const AuctionCreateView = () => {
               safetyDepositBoxIndex: attributes.items.length,
               winnerConstraint: WinningConstraint.ParticipationPrizeGiven,
               nonWinningConstraint: NonWinningConstraint.GivenForFixedPrice,
-              fixedPrice: new BN(toLamports(attributes.priceFloor, mint) || 0),
+              fixedPrice: new BN(
+                toLamports(attributes.participationFixedPrice, mint) || 0,
+              ),
             })
           : null,
       });
@@ -287,7 +296,9 @@ export const AuctionCreateView = () => {
               safetyDepositBoxIndex: tieredAttributes.items.length,
               winnerConstraint: WinningConstraint.ParticipationPrizeGiven,
               nonWinningConstraint: NonWinningConstraint.GivenForFixedPrice,
-              fixedPrice: new BN(toLamports(attributes.priceFloor, mint) || 0),
+              fixedPrice: new BN(
+                toLamports(attributes.participationFixedPrice, mint) || 0,
+              ),
             })
           : null,
       });
@@ -295,14 +306,29 @@ export const AuctionCreateView = () => {
       console.log('Tiered settings', settings);
     }
 
+    const auctionSettings: IPartialCreateAuctionArgs = {
+      winners: winnerLimit,
+      endAuctionAt: new BN((attributes.auctionDuration || 0) * 60), // endAuctionAt is actually auction duration, poorly named, in seconds
+      auctionGap: new BN((attributes.gapTime || 0) * 60),
+      priceFloor: new PriceFloor({
+        type: attributes.priceFloor
+          ? PriceFloorType.Minimum
+          : PriceFloorType.None,
+        minPrice: new BN((attributes.priceFloor || 0) * LAMPORTS_PER_SOL),
+      }),
+      tokenMint: QUOTE_MINT,
+      gapTickSizePercentage: attributes.tickSizeEndingPhase || null,
+      tickSize: attributes.priceTick
+        ? new BN(attributes.priceTick * LAMPORTS_PER_SOL)
+        : null,
+    };
+
     const _auctionObj = await createAuctionManager(
       connection,
       wallet,
       whitelistedCreatorsByCreator,
       settings,
-      winnerLimit,
-      new BN((attributes.auctionDuration || 0) * 60), // endAuctionAt is actually auction duration, poorly named, in seconds
-      new BN((attributes.gapTime || 0) * 60),
+      auctionSettings,
       attributes.category === AuctionCategory.Open
         ? []
         : attributes.category !== AuctionCategory.Tiered
@@ -738,12 +764,6 @@ const SaleTypeStep = (props: {
               <div className="radio-subtitle">
                 Allow bidding on your NFT(s).
               </div>
-              <Radio className="radio-field" value="sale">
-                Instant Sale
-              </Radio>
-              <div className="radio-subtitle">
-                Allow buyers to purchase your NFT(s) at a fixed price.
-              </div>
             </Radio.Group>
           </label>
         </Col>
@@ -839,27 +859,55 @@ const PriceAuction = (props: {
       </Row>
       <Row className="content-action">
         <Col className="section" xl={24}>
-          <label className="action-field">
-            <span className="field-title">Price Floor</span>
-            <span className="field-info">
-              This is the starting bid price for your auction.
-            </span>
-            <Input
-              type="number"
-              min={0}
-              autoFocus
-              className="input"
-              placeholder="Price"
-              prefix="◎"
-              suffix="SOL"
-              onChange={info =>
-                props.setAttributes({
-                  ...props.attributes,
-                  priceFloor: parseFloat(info.target.value),
-                })
-              }
-            />
-          </label>
+          {props.attributes.category === AuctionCategory.Open && (
+            <label className="action-field">
+              <span className="field-title">Price</span>
+              <span className="field-info">
+                This is an optional fixed price that non-winners will pay for
+                your Participation NFT.
+              </span>
+              <Input
+                type="number"
+                min={0}
+                autoFocus
+                className="input"
+                placeholder="Fixed Price"
+                prefix="◎"
+                suffix="SOL"
+                onChange={info =>
+                  props.setAttributes({
+                    ...props.attributes,
+                    // Do both, since we know this is the only item being sold.
+                    participationFixedPrice: parseFloat(info.target.value),
+                    priceFloor: parseFloat(info.target.value),
+                  })
+                }
+              />
+            </label>
+          )}
+          {props.attributes.category !== AuctionCategory.Open && (
+            <label className="action-field">
+              <span className="field-title">Price Floor</span>
+              <span className="field-info">
+                This is the starting bid price for your auction.
+              </span>
+              <Input
+                type="number"
+                min={0}
+                autoFocus
+                className="input"
+                placeholder="Price"
+                prefix="◎"
+                suffix="SOL"
+                onChange={info =>
+                  props.setAttributes({
+                    ...props.attributes,
+                    priceFloor: parseFloat(info.target.value),
+                  })
+                }
+              />
+            </label>
+          )}
           <label className="action-field">
             <span className="field-title">Tick Size</span>
             <span className="field-info">
@@ -1323,13 +1371,13 @@ const TierTableStep = (props: {
                     if (items[0]) {
                       const existing = props.attributes.items.find(
                         it =>
-                          it.metadata.pubkey.toBase58() ==
+                          it.metadata.pubkey.toBase58() ===
                           items[0].metadata.pubkey.toBase58(),
                       );
                       if (!existing) newItems.push(items[0]);
                       const index = newItems.findIndex(
                         it =>
-                          it.metadata.pubkey.toBase58() ==
+                          it.metadata.pubkey.toBase58() ===
                           items[0].metadata.pubkey.toBase58(),
                       );
 
@@ -1353,7 +1401,7 @@ const TierTableStep = (props: {
                       const othersWithSameItem = newTiers.find(c =>
                         c.items.find(
                           it =>
-                            it.safetyDepositBoxIndex ==
+                            it.safetyDepositBoxIndex ===
                             (i as WinningConfigItem).safetyDepositBoxIndex,
                         ),
                       );
@@ -1421,7 +1469,7 @@ const TierTableStep = (props: {
                       </Option>
                     </Select>
 
-                    {(i as WinningConfigItem).winningConfigType ==
+                    {(i as WinningConfigItem).winningConfigType ===
                       WinningConfigType.Printing && (
                       <label className="action-field">
                         <span className="field-title">
@@ -1546,6 +1594,28 @@ const ParticipationStep = (props: {
           >
             Select Participation NFT
           </ArtSelector>
+          <label className="action-field">
+            <span className="field-title">Price</span>
+            <span className="field-info">
+              This is an optional fixed price that non-winners will pay for your
+              Participation NFT.
+            </span>
+            <Input
+              type="number"
+              min={0}
+              autoFocus
+              className="input"
+              placeholder="Fixed Price"
+              prefix="◎"
+              suffix="SOL"
+              onChange={info =>
+                props.setAttributes({
+                  ...props.attributes,
+                  participationFixedPrice: parseFloat(info.target.value),
+                })
+              }
+            />
+          </label>
         </Col>
       </Row>
       <Row>

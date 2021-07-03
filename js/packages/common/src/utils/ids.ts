@@ -1,4 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
+import { findProgramAddress } from '../utils';
 import { TokenSwapLayout, TokenSwapLayoutV1 } from '../models/tokenSwap';
 
 export const STORE_OWNER_ADDRESS = process.env
@@ -24,6 +25,7 @@ export let BPF_UPGRADE_LOADER_ID = new PublicKey(
 
 export const METADATA_PROGRAM_ID = new PublicKey(
   'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
+  //'GCUQ7oWCzgtRKnHnuJGxpr5XVeEkxYUXwTKYcqGtxLv4',
 );
 
 export const MEMO_ID = new PublicKey(
@@ -32,14 +34,17 @@ export const MEMO_ID = new PublicKey(
 
 export const VAULT_ID = new PublicKey(
   'vau1zxA2LbssAUEF7Gpw91zMM1LvXrvpzJtmZ58rPsn',
+  //'41cCnZ1Z1upJdtsS1tzFGR34cPFgJLzvJFmgYKpCqkz7',
 );
 
 export const AUCTION_ID = new PublicKey(
   'auctxRXPeJoc4817jDhf4HbjnhEcr1cCXenosMhK5R8',
+  //'6u5XVthCStUfmNrYhFsST94oKxzwEZfZFHFhiCnB2nR1',
 );
 
 export const METAPLEX_ID = new PublicKey(
   'p1exdMJcjVao65QdewkaZRUnU6VPSXhus9n2GzWfh98',
+  //'98jcGaKLKx9vv33H9edLUXAydrSipHhJGDQuPXBVPVGp',
 );
 
 export let SYSTEM = new PublicKey('11111111111111111111111111111111');
@@ -64,25 +69,23 @@ export const PROGRAM_IDS = [
 ];
 
 const getStoreID = async () => {
-  console.log(`STORE_OWNER_ADDRESS: ${STORE_OWNER_ADDRESS}`);
+  console.log(`STORE_OWNER_ADDRESS: ${STORE_OWNER_ADDRESS?.toBase58()}`);
   if (!STORE_OWNER_ADDRESS) {
-    return DEFAULT_STORE;
+    return undefined;
   }
 
-  if (!STORE) {
-    STORE = (
-      await PublicKey.findProgramAddress(
-        [
-          Buffer.from('metaplex'),
-          METAPLEX_ID.toBuffer(),
-          STORE_OWNER_ADDRESS.toBuffer(),
-        ],
-        METAPLEX_ID,
-      )
-    )[0];
-  }
+  const programs = await findProgramAddress(
+    [
+      Buffer.from('metaplex'),
+      METAPLEX_ID.toBuffer(),
+      STORE_OWNER_ADDRESS.toBuffer(),
+    ],
+    METAPLEX_ID,
+  );
+  const CUSTOM = programs[0];
+  console.log(`CUSTOM STORE: ${CUSTOM.toBase58()}`);
 
-  return STORE;
+  return CUSTOM;
 };
 
 export const setProgramIds = async (envName: string) => {
@@ -91,14 +94,12 @@ export const setProgramIds = async (envName: string) => {
     return;
   }
 
-  STORE = await getStoreID();
+  if (!STORE) {
+    STORE = await getStoreID();
+  }
 };
 
-const DEFAULT_STORE = new PublicKey(
-  'F5hSxbvP1FjtjSFyFF1VqkfkYRN4zMrWfeqjqSMrSUKC',
-);
-
-let STORE: PublicKey;
+let STORE: PublicKey | undefined;
 
 export const programIds = () => {
   return {

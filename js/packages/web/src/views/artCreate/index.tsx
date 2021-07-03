@@ -12,6 +12,7 @@ import {
   Spin,
   InputNumber,
   Form,
+  Typography,
 } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
 import { UserSearch, UserValue } from './../../components/UserSearch';
@@ -29,17 +30,19 @@ import {
   shortenAddress,
   MetaplexModal,
   MetaplexOverlay,
+  MetadataFile,
 } from '@oyster/common';
 import { getAssetCostToStore, LAMPORT_MULTIPLIER } from '../../utils/assets';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
-import { cleanName } from '../../utils/utils';
+import { cleanName, getLast } from '../../utils/utils';
 import { AmountLabel } from '../../components/AmountLabel';
 import useWindowDimensions from '../../utils/layout';
 
 const { Step } = Steps;
 const { Dragger } = Upload;
+const { Text } = Typography;
 
 export const ArtCreateView = () => {
   const connection = useConnection();
@@ -54,12 +57,14 @@ export const ArtCreateView = () => {
   const [progress, setProgress] = useState<number>(0);
   const [nft, setNft] =
     useState<{ metadataAccount: PublicKey } | undefined>(undefined);
+  const [files, setFiles] = useState<File[]>([]);
   const [attributes, setAttributes] = useState<IMetadataExtension>({
     name: '',
     symbol: '',
     description: '',
     external_url: '',
     image: '',
+    animation_url: undefined,
     seller_fee_basis_points: 0,
     creators: [],
     properties: {
@@ -83,21 +88,17 @@ export const ArtCreateView = () => {
 
   // store files
   const mint = async () => {
-    const fileNames = (attributes?.properties?.files || []).map(f => typeof f === 'string' ? f : f.name);
-    const files = (attributes?.properties?.files || []).filter(f => typeof f !== 'string') as File[];
     const metadata = {
       name: attributes.name,
       symbol: attributes.symbol,
       creators: attributes.creators,
       description: attributes.description,
       sellerFeeBasisPoints: attributes.seller_fee_basis_points,
-      image:
-        fileNames &&
-        fileNames?.[0] &&
-        fileNames[0],
+      image: attributes.image,
+      animation_url: attributes.animation_url,
       external_url: attributes.external_url,
       properties: {
-        files: fileNames,
+        files: attributes.properties.files,
         category: attributes.properties?.category,
       },
     };
@@ -162,6 +163,8 @@ export const ArtCreateView = () => {
             <UploadStep
               attributes={attributes}
               setAttributes={setAttributes}
+              files={files}
+              setFiles={setFiles}
               confirm={() => gotoStep(2)}
             />
           )}
@@ -169,6 +172,7 @@ export const ArtCreateView = () => {
           {step === 2 && (
             <InfoStep
               attributes={attributes}
+              files={files}
               setAttributes={setAttributes}
               confirm={() => gotoStep(3)}
             />
@@ -183,6 +187,7 @@ export const ArtCreateView = () => {
           {step === 4 && (
             <LaunchStep
               attributes={attributes}
+              files={files}
               confirm={() => gotoStep(5)}
               connection={connection}
             />
@@ -280,14 +285,16 @@ const CategoryStep = (props: {
 const UploadStep = (props: {
   attributes: IMetadataExtension;
   setAttributes: (attr: IMetadataExtension) => void;
+  files: File[],
+  setFiles: (files: File[]) => void,
   confirm: () => void;
 }) => {
-  const [mainFile, setMainFile] = useState<any>();
-  const [coverFile, setCoverFile] = useState<any>();
-  const [image, setImage] = useState<string>('');
-  const [imageURL, setImageURL] = useState<string>('');
-  const [imageURLErr, setImageURLErr] = useState<string>('');
-  const disableContinue = (!mainFile && !image) || !!imageURLErr;
+  const [coverFile, setCoverFile] = useState<File | undefined>(props.files?.[0]);
+  const [mainFile, setMainFile] = useState<File | undefined>(props.files?.[1]);
+
+  const [customURL, setCustomURL] = useState<string>('');
+  const [customURLErr, setCustomURLErr] = useState<string>('');
+  const disableContinue = (!coverFile) || !!customURLErr;
 
   useEffect(() => {
     props.setAttributes({
@@ -321,7 +328,7 @@ const UploadStep = (props: {
       case MetadataCategory.Image:
         return '.png,.jpg,.gif';
       case MetadataCategory.Video:
-        return '.mp4,.mov';
+        return '.mp4,.mov,.webm';
       case MetadataCategory.VR:
         return '.glb';
       default:
@@ -341,120 +348,101 @@ const UploadStep = (props: {
           very first time.
         </p>
       </Row>
-      <Row className="content-action" style={{ marginBottom: 5 }}>
-        <h3>{uploadMsg(props.attributes.properties?.category)}</h3>
-        <Dragger
-          accept={acceptableFiles(props.attributes.properties?.category)}
-          style={{ padding: 20, background: 'rgba(255, 255, 255, 0.08)' }}
-          multiple={false}
-          customRequest={info => {
-            // dont upload files here, handled outside of the control
-            info?.onSuccess?.({}, null as any);
-          }}
-          fileList={mainFile ? [mainFile] : []}
-          onChange={async info => {
-            const file = info.file.originFileObj;
-
-            // Reset image URL
-            setImageURL('');
-            setImageURLErr('');
-
-            if (file) setMainFile(file);
-            if (
-              props.attributes.properties?.category !== MetadataCategory.Audio
-            ) {
-              const reader = new FileReader();
-              reader.onload = function (event) {
-                setImage((event.target?.result as string) || '');
-              };
-              if (file) reader.readAsDataURL(file);
-            }
-          }}
-          onRemove={() => {
-            setMainFile(null);
-            setImage('');
-          }}
-        >
-          <div className="ant-upload-drag-icon">
-            <h3 style={{ fontWeight: 700 }}>Upload your creation</h3>
-          </div>
-          <p className="ant-upload-text">Drag and drop, or click to browse</p>
-        </Dragger>
-      </Row>
-      <Form.Item
-        style={{ width: '100%', flexDirection: 'column', paddingTop: 30, marginBottom: 4 }}
-        label={<h3>OR use absolute URL to content</h3>}
-        labelAlign="left"
-        colon={false}
-        validateStatus={imageURLErr ? 'error' : 'success'}
-        help={imageURLErr}
-      >
-        <Input
-          disabled={!!mainFile}
-          placeholder="http://example.com/path/to/image"
-          value={imageURL}
-          onChange={(ev) => setImageURL(ev.target.value)}
-          onFocus={() => setImageURLErr('')}
-          onBlur={() => {
-            if (!imageURL) {
-              setImageURLErr('');
-              return;
-            }
-
-            try {
-              // Validate URL and save
-              new URL(imageURL);
-              setImage(imageURL);
-            } catch (e) {
-              console.error(e);
-              setImageURLErr('Please enter a valid absolute URL');
-            }
-          }}
-        />
-      </Form.Item>
-      {
-        props.attributes.properties?.category === MetadataCategory.Audio && (
-          <Row className="content-action">
-            <h3>
-              Optionally, you can upload a cover image or video (PNG, JPG, GIF,
-              MP4)
+      <Row className="content-action">
+          <h3>
+            Upload a cover image (PNG, JPG, GIF)
           </h3>
+          <Dragger
+            accept=".png,.jpg,.gif,.mp4"
+            style={{ padding: 20 }}
+            multiple={false}
+            customRequest={info => {
+              // dont upload files here, handled outside of the control
+              info?.onSuccess?.({}, null as any);
+            }}
+            fileList={coverFile ? [coverFile as any] : []}
+            onChange={async info => {
+              const file = info.file.originFileObj;
+              if (file) setCoverFile(file);
+            }}
+          >
+            <div className="ant-upload-drag-icon">
+              <h3 style={{ fontWeight: 700 }}>
+                Upload your cover image (PNG, JPG, GIF)
+              </h3>
+            </div>
+            <p className="ant-upload-text">Drag and drop, or click to browse</p>
+          </Dragger>
+        </Row>
+        {(props.attributes.properties?.category !== MetadataCategory.Image) && (
+          <Row className="content-action" style={{ marginBottom: 5, marginTop: 30 }}>
+            <h3>{uploadMsg(props.attributes.properties?.category)}</h3>
             <Dragger
-              accept=".png,.jpg,.gif,.mp4"
-              style={{ padding: 20 }}
+              accept={acceptableFiles(props.attributes.properties?.category)}
+              style={{ padding: 20, background: 'rgba(255, 255, 255, 0.08)' }}
               multiple={false}
               customRequest={info => {
                 // dont upload files here, handled outside of the control
                 info?.onSuccess?.({}, null as any);
               }}
-              fileList={coverFile ? [coverFile] : []}
+              fileList={mainFile ? [mainFile as any] : []}
               onChange={async info => {
                 const file = info.file.originFileObj;
-                if (file) setCoverFile(file);
-                if (
-                  props.attributes.properties?.category === MetadataCategory.Audio
-                ) {
-                  const reader = new FileReader();
-                  reader.onload = function (event) {
-                    setImage((event.target?.result as string) || '');
-                  };
-                  if (file) reader.readAsDataURL(file);
-                }
+
+                // Reset image URL
+                setCustomURL('');
+                setCustomURLErr('');
+
+                if (file) setMainFile(file);
+              }}
+              onRemove={() => {
+                setMainFile(undefined);
               }}
             >
               <div className="ant-upload-drag-icon">
-                <h3 style={{ fontWeight: 700 }}>
-                  Upload your cover image or video (PNG, JPG, GIF, MP4)
-              </h3>
+                <h3 style={{ fontWeight: 700 }}>Upload your creation</h3>
               </div>
               <p className="ant-upload-text">Drag and drop, or click to browse</p>
             </Dragger>
-            <h3 style={{ marginTop: 30 }}>OR use absolute URL to content</h3>
-            <Input />
-          </Row>
-        )
-      }
-      < Row >
+        </Row>)}
+      <Form.Item
+        style={{
+          width: '100%',
+          flexDirection: 'column',
+          paddingTop: 30,
+          marginBottom: 4,
+        }}
+        label={<h3>OR use absolute URL to content</h3>}
+        labelAlign="left"
+        colon={false}
+        validateStatus={customURLErr ? 'error' : 'success'}
+        help={customURLErr}
+      >
+        <Input
+          disabled={!!mainFile}
+          placeholder="http://example.com/path/to/image"
+          value={customURL}
+          onChange={ev => setCustomURL(ev.target.value)}
+          onFocus={() => setCustomURLErr('')}
+          onBlur={() => {
+            if (!customURL) {
+              setCustomURLErr('');
+              return;
+            }
+
+            try {
+              // Validate URL and save
+              new URL(customURL);
+              setCustomURL(customURL);
+              setCustomURLErr('');
+            } catch (e) {
+              console.error(e);
+              setCustomURLErr('Please enter a valid absolute URL');
+            }
+          }}
+        />
+      </Form.Item>
+      <Row>
         <Button
           type="primary"
           size="large"
@@ -464,14 +452,24 @@ const UploadStep = (props: {
               ...props.attributes,
               properties: {
                 ...props.attributes.properties,
-                files: imageURL
-                  ? [imageURL]
-                  : [mainFile, coverFile]
-                    .filter(f => f)
-                    .map(f => new File([f], cleanName(f.name), { type: f.type })),
+                files: [coverFile, mainFile, customURL]
+                      .filter(f => f)
+                      .map(
+                        f => {
+                          const uri = typeof f === 'string' ? f : (cleanName(f?.name) || '');
+                          const type = typeof f === 'string' || !f ? 'unknown'  : f.type || (getLast(f.name.split('.')) || 'unknown');
+
+                          return ({
+                            uri,
+                            type
+                          }) as MetadataFile;
+                        },
+                      ),
               },
-              image: imageURL || image,
+              image: cleanName(coverFile?.name) || '',
+              animation_url: cleanName(mainFile && mainFile.name),
             });
+            props.setFiles([coverFile, mainFile].filter(f => f) as File[]);
             props.confirm();
           }}
           style={{ marginTop: 24 }}
@@ -479,7 +477,7 @@ const UploadStep = (props: {
         >
           Continue to Mint
         </Button>
-      </Row >
+      </Row>
     </>
   );
 };
@@ -489,17 +487,55 @@ interface Royalty {
   amount: number;
 }
 
+const useArtworkFiles = (files: File[], attributes: IMetadataExtension) => {
+  const [data, setData] = useState<{ image: string, animation_url: string }>({ image: '', animation_url: '' });
+
+  useEffect(() => {
+    if(attributes.image) {
+      const file = files.find(f => f.name === attributes.image);
+      if(file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          setData((data: any) => {
+            return {
+              ...(data || {}),
+              image: (event.target?.result as string) || '',
+            }
+          });
+        };
+        if (file) reader.readAsDataURL(file);
+      }
+    }
+
+    if(attributes.animation_url) {
+      const file = files.find(f => f.name === attributes.animation_url);
+      if(file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          setData((data: any) => {
+            return {
+              ...(data || {}),
+              animation_url: (event.target?.result as string) || '',
+            }
+          });
+        };
+        if (file) reader.readAsDataURL(file);
+      }
+    }
+  }, [files, attributes]);
+
+  return data;
+}
+
 const InfoStep = (props: {
   attributes: IMetadataExtension;
+  files: File[],
   setAttributes: (attr: IMetadataExtension) => void;
   confirm: () => void;
 }) => {
   const [creators, setCreators] = useState<Array<UserValue>>([]);
   const [royalties, setRoyalties] = useState<Array<Royalty>>([]);
-  const { wallet } = useWallet();
-
-  const file = props.attributes.properties.files?.[0];
-  const fileName = typeof file === 'string' ? file : file?.name;
+  const { image, animation_url } = useArtworkFiles(props.files, props.attributes);
 
   useEffect(() => {
     setRoyalties(
@@ -522,8 +558,8 @@ const InfoStep = (props: {
         <Col>
           {props.attributes.image && (
             <ArtCard
-              image={props.attributes.image}
-              file={fileName || ''}
+              image={image}
+              animationURL={animation_url}
               category={props.attributes.properties?.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
@@ -618,77 +654,74 @@ const InfoStep = (props: {
   );
 };
 
-const shuffle = (array: Array<any>) => {
-  array.sort(() => Math.random() - 0.5);
-};
-
 const RoyaltiesSplitter = (props: {
   creators: Array<UserValue>;
   royalties: Array<Royalty>;
   setRoyalties: Function;
+  isShowErrors?: boolean;
 }) => {
   return (
     <Col>
-      {props.creators.map((creator, idx) => {
-        const royalty = props.royalties.find(
-          royalty => royalty.creatorKey === creator.key,
-        );
-        if (!royalty) return null;
-
-        const amt = royalty.amount;
-        const handleSlide = (newAmt: number) => {
-          const othersRoyalties = props.royalties.filter(
-            _royalty => _royalty.creatorKey !== royalty.creatorKey,
+      <Row gutter={[0, 24]}>
+        {props.creators.map((creator, idx) => {
+          const royalty = props.royalties.find(
+            royalty => royalty.creatorKey === creator.key,
           );
-          if (othersRoyalties.length < 1) return;
-          shuffle(othersRoyalties);
-          const others_n = props.royalties.length - 1;
-          const sign = Math.sign(newAmt - amt);
-          let remaining = Math.abs(newAmt - amt);
-          let count = 0;
-          while (remaining > 0 && count < 100) {
-            const idx = count % others_n;
-            const _royalty = othersRoyalties[idx];
-            if (
-              (0 < _royalty.amount && _royalty.amount < 100) || // Normal
-              (_royalty.amount === 0 && sign < 0) || // Low limit
-              (_royalty.amount === 100 && sign > 0) // High limit
-            ) {
-              _royalty.amount -= sign;
-              remaining -= 1;
-            }
-            count += 1;
-          }
+          if (!royalty) return null;
 
-          props.setRoyalties(
-            props.royalties.map(_royalty => {
-              const computed_amount = othersRoyalties.find(
-                newRoyalty => newRoyalty.creatorKey === _royalty.creatorKey,
-              )?.amount;
-              return {
-                ..._royalty,
-                amount:
-                  _royalty.creatorKey === royalty.creatorKey
-                    ? newAmt
-                    : computed_amount,
-              };
-            }),
+          const amt = royalty.amount;
+
+          const handleChangeShare = (newAmt: number) => {
+            props.setRoyalties(
+              props.royalties.map(_royalty => {
+                return {
+                  ..._royalty,
+                  amount:
+                    _royalty.creatorKey === royalty.creatorKey
+                      ? newAmt
+                      : _royalty.amount,
+                };
+              }),
+            );
+          };
+
+          return (
+            <Col span={24}>
+              <Row
+                key={idx}
+                align="middle"
+                gutter={[0, 16]}
+                style={{ margin: '5px auto' }}
+              >
+                <Col span={4} style={{ padding: 10 }}>
+                  {creator.label}
+                </Col>
+                <Col span={3}>
+                  <InputNumber<number>
+                    min={0}
+                    max={100}
+                    formatter={value => `${value}%`}
+                    value={amt}
+                    parser={value => parseInt(value?.replace('%', '') ?? '0')}
+                    onChange={handleChangeShare}
+                    className="royalties-input"
+                  />
+                </Col>
+                <Col span={4} style={{ paddingLeft: 12 }}>
+                  <Slider value={amt} onChange={handleChangeShare} />
+                </Col>
+                {props.isShowErrors && amt === 0 && (
+                  <Col style={{ paddingLeft: 12 }}>
+                    <Text type="danger">
+                      The split percentage for this creator cannot be 0%.
+                    </Text>
+                  </Col>
+                )}
+              </Row>
+            </Col>
           );
-        };
-        return (
-          <Row key={idx} style={{ margin: '5px auto' }}>
-            <Col span={4} style={{ padding: 10 }}>
-              {creator.label}
-            </Col>
-            <Col span={2} className="slider-elem">
-              {amt}%
-            </Col>
-            <Col span={4}>
-              <Slider value={amt} onChange={handleSlide} />
-            </Col>
-          </Row>
-        );
-      })}
+        })}
+      </Row>
     </Col>
   );
 };
@@ -704,7 +737,9 @@ const RoyaltiesStep = (props: {
   const [creators, setCreators] = useState<Array<UserValue>>([]);
   const [fixedCreators, setFixedCreators] = useState<Array<UserValue>>([]);
   const [royalties, setRoyalties] = useState<Array<Royalty>>([]);
+  const [totalRoyaltyShares, setTotalRoyaltiesShare] = useState<number>(0);
   const [showCreatorsModal, setShowCreatorsModal] = useState<boolean>(false);
+  const [isShowErrors, setIsShowErrors] = useState<boolean>(false);
 
   useEffect(() => {
     if (wallet?.publicKey) {
@@ -727,6 +762,15 @@ const RoyaltiesStep = (props: {
       })),
     );
   }, [creators, fixedCreators]);
+
+  useEffect(() => {
+    // When royalties changes, sum up all the amounts.
+    const total = royalties.reduce((totalShares, royalty) => {
+      return totalShares + royalty.amount;
+    }, 0);
+
+    setTotalRoyaltiesShare(total);
+  }, [royalties]);
 
   return (
     <>
@@ -771,26 +815,38 @@ const RoyaltiesStep = (props: {
               creators={[...fixedCreators, ...creators]}
               royalties={royalties}
               setRoyalties={setRoyalties}
+              isShowErrors={isShowErrors}
             />
           </label>
         </Row>
       )}
       <Row>
-        <span onClick={() => setShowCreatorsModal(true)} style={{ padding: 10, marginBottom: 10 }}>
-          <span style={{
-            color: "white",
-            fontSize: 25,
-            padding: "0px 8px 3px 8px",
-            background: "rgb(57, 57, 57)",
-            borderRadius: "50%",
-            marginRight: 5,
-            verticalAlign: "middle",
-          }}>+</span>
-          <span style={{
-            color: "rgba(255, 255, 255, 0.7)",
-            verticalAlign: "middle",
-            lineHeight: 1,
-          }}>Add another creator</span>
+        <span
+          onClick={() => setShowCreatorsModal(true)}
+          style={{ padding: 10, marginBottom: 10 }}
+        >
+          <span
+            style={{
+              color: 'white',
+              fontSize: 25,
+              padding: '0px 8px 3px 8px',
+              background: 'rgb(57, 57, 57)',
+              borderRadius: '50%',
+              marginRight: 5,
+              verticalAlign: 'middle',
+            }}
+          >
+            +
+          </span>
+          <span
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              verticalAlign: 'middle',
+              lineHeight: 1,
+            }}
+          >
+            Add another creator
+          </span>
         </span>
         <MetaplexModal
           visible={showCreatorsModal}
@@ -802,11 +858,30 @@ const RoyaltiesStep = (props: {
           </label>
         </MetaplexModal>
       </Row>
+      {isShowErrors && totalRoyaltyShares !== 100 && (
+        <Row>
+          <Text type="danger" style={{ paddingBottom: 14 }}>
+            The split percentages for each creator must add up to 100%. Current
+            total split percentage is {totalRoyaltyShares}%.
+          </Text>
+        </Row>
+      )}
       <Row>
         <Button
           type="primary"
           size="large"
           onClick={() => {
+            // Find all royalties that are invalid (0)
+            const zeroedRoyalties = royalties.filter(
+              royalty => royalty.amount === 0,
+            );
+
+            if (zeroedRoyalties.length !== 0 || totalRoyaltyShares !== 100) {
+              // Contains a share that is 0 or total shares does not equal 100, show errors.
+              setIsShowErrors(true);
+              return;
+            }
+
             const creatorStructs: Creator[] = [
               ...fixedCreators,
               ...creators,
@@ -846,15 +921,13 @@ const RoyaltiesStep = (props: {
 const LaunchStep = (props: {
   confirm: () => void;
   attributes: IMetadataExtension;
+  files: File[],
   connection: Connection;
 }) => {
-  const files = (props.attributes.properties?.files || []).filter(f => typeof f !== 'string') as File[];
-  const fileNames = (props.attributes.properties?.files || []).map(f => typeof f === 'string' ? f : f?.name);
-  const metadata = {
-    ...(props.attributes as any),
-    files: fileNames,
-  };
   const [cost, setCost] = useState(0);
+  const { image, animation_url } = useArtworkFiles(props.files, props.attributes);
+  const files = props.files;
+  const metadata = props.attributes;
   useEffect(() => {
     const rentCall = Promise.all([
       props.connection.getMinimumBalanceForRentExemption(MintLayout.span),
@@ -881,7 +954,7 @@ const LaunchStep = (props: {
         // TODO: add fees based on number of transactions and signers
         setCost(sol + additionalSol);
       });
-  }, [files, setCost]);
+  }, [files, metadata, setCost]);
 
   return (
     <>
@@ -896,8 +969,8 @@ const LaunchStep = (props: {
         <Col>
           {props.attributes.image && (
             <ArtCard
-              image={props.attributes.image}
-              file={fileNames?.[0] || ''}
+              image={image}
+              animationURL={animation_url}
               category={props.attributes.properties?.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
@@ -983,8 +1056,9 @@ const Congrats = (props: {
   const newTweetURL = () => {
     const params = {
       text: "I've created a new NFT artwork on Metaplex, check it out!",
-      url: `${window.location.origin
-        }/#/art/${props.nft?.metadataAccount.toString()}`,
+      url: `${
+        window.location.origin
+      }/#/art/${props.nft?.metadataAccount.toString()}`,
       hashtags: 'NFT,Crypto,Metaplex',
       // via: "Metaplex",
       related: 'Metaplex,Solana',
@@ -995,9 +1069,7 @@ const Congrats = (props: {
 
   return (
     <>
-      <div className="waiting-title">
-        Congratulations, you created an NFT!
-      </div>
+      <div className="waiting-title">Congratulations, you created an NFT!</div>
       <div className="congrats-button-container">
         <Button
           className="metaplex-button"

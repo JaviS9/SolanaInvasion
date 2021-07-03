@@ -1,4 +1,9 @@
-import { programIds, VAULT_PREFIX, getAuctionExtended } from '@oyster/common';
+import {
+  programIds,
+  VAULT_PREFIX,
+  getAuctionExtended,
+  findProgramAddress,
+} from '@oyster/common';
 import {
   PublicKey,
   SYSVAR_RENT_PUBKEY,
@@ -25,9 +30,13 @@ export async function populateParticipationPrintingAccount(
   instructions: TransactionInstruction[],
 ) {
   const PROGRAM_IDS = programIds();
+  const store = PROGRAM_IDS.store;
+  if (!store) {
+    throw new Error('Store not initialized');
+  }
 
   const transferAuthority: PublicKey = (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(VAULT_PREFIX),
         PROGRAM_IDS.vault.toBuffer(),
@@ -115,7 +124,7 @@ export async function populateParticipationPrintingAccount(
       isWritable: false,
     },
     {
-      pubkey: PROGRAM_IDS.store,
+      pubkey: store,
       isSigner: false,
       isWritable: false,
     },

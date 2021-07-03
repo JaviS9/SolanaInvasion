@@ -1,19 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Avatar, Col, Row, CardProps, Button, Badge } from 'antd';
-import {
-  Creator,
-  MetadataCategory,
-  shortenAddress,
-  useConnection,
-  formatTokenAmount,
-  CountdownState,
-} from '@oyster/common';
+import React, { useEffect, useState } from 'react';
+import { Card, CardProps } from 'antd';
+import { formatTokenAmount, CountdownState, PriceFloorType, fromLamports, useMint } from '@oyster/common';
 import { ArtContent } from '../ArtContent';
 import './index.less';
-import { AuctionView, useArt, useCreators } from '../../hooks';
-import { PublicKey } from '@solana/web3.js';
-import { Artist, ArtType } from '../../types';
-import { MetaAvatar } from '../MetaAvatar';
+import { AuctionView, AuctionViewState, useArt, useBidsForAuction } from '../../hooks';
 import { AmountLabel } from '../AmountLabel';
 import { useHighestBidForAuction } from '../../hooks';
 
@@ -24,17 +14,46 @@ export interface AuctionCard extends CardProps {
 
 export const AuctionRenderCard = (props: AuctionCard) => {
   let { auctionView } = props;
-  const art = useArt(auctionView.thumbnail.metadata.pubkey);
-  const category = art?.category;
-  const image = art?.image;
-  const creators = useCreators(auctionView);
+  const id = auctionView.thumbnail.metadata.pubkey;
+  const art = useArt(id);
   const name = art?.title || ' ';
-  const description = art?.about;
   const [state, setState] = useState<CountdownState>();
+  const bids = useBidsForAuction(auctionView.auction.pubkey);
+  const mintInfo = useMint(auctionView.auction.info.tokenMint);
+
+  const participationFixedPrice =
+    auctionView.auctionManager.info.settings.participationConfig?.fixedPrice ||
+    0;
+  const participationOnly =
+    auctionView.auctionManager.info.settings.winningConfigs.length === 0;
+  const priceFloor =
+    auctionView.auction.info.priceFloor.type === PriceFloorType.Minimum
+      ? auctionView.auction.info.priceFloor.minPrice?.toNumber() || 0
+      : 0;
+  const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
 
   const winningBid = useHighestBidForAuction(auctionView.auction.pubkey);
   const ended =
     state?.hours === 0 && state?.minutes === 0 && state?.seconds === 0;
+
+  let currentBid: number | string = 0;
+  let label = '';
+  if(isUpcoming || bids) {
+    label = ended ? 'Ended' : 'Starting bid';
+    currentBid = fromLamports(
+      participationOnly ? participationFixedPrice : priceFloor,
+      mintInfo,
+    )
+  }
+
+  if (!isUpcoming && bids.length > 0) {
+    label = ended ? 'Winning bid' : 'Current bid';
+    currentBid = winningBid &&
+      Number.isFinite(winningBid.info.lastBid?.toNumber())
+        ? formatTokenAmount(winningBid.info.lastBid)
+        : 'No Bid'
+  }
+
   const auction = auctionView.auction.info;
   useEffect(() => {
     const calc = () => {
@@ -56,12 +75,12 @@ export const AuctionRenderCard = (props: AuctionCard) => {
       cover={
         <>
           <ArtContent
-            category={category}
             className="auction-image no-events"
-            extension={image}
-            uri={image}
             preview={false}
-            files={art.files}
+
+            pubkey={id}
+
+            allowMeshRender={false}
           />
         </>
       }
@@ -70,22 +89,15 @@ export const AuctionRenderCard = (props: AuctionCard) => {
         title={`${name}`}
         description={
           <>
-            <h4>Creators</h4>
-            <MetaAvatar creators={creators} showMultiple={true} size={32} />
             <h4 style={{ marginBottom: 0 }}>
-              {ended ? 'Winning bid' : 'Current bid'}
+              {label}
             </h4>
             <div className="bids">
               <AmountLabel
                 style={{ marginBottom: 10 }}
                 containerStyle={{ flexDirection: 'row' }}
-                title={ended ? 'Winning bid' : 'Highest bid'}
-                amount={
-                  winningBid &&
-                  Number.isFinite(winningBid.info.lastBid?.toNumber())
-                    ? formatTokenAmount(winningBid.info.lastBid)
-                    : 'No Bid'
-                }
+                title={label}
+                amount={currentBid}
               />
             </div>
             {/* {endAuctionAt && hasTimer && (
