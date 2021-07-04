@@ -4,5 +4,12 @@
     "image": "/heliumavatar.png",
     "description": "Helium Zodiac is a collection of 12 original pieces of NFT art redeemable for Helium Hotspots. All proceeds from the auction will be donated to supporting COVID relief efforts.",
     "background": ""
+  },
+  "SoL351y4uKWtbH14AU1Rhiao96aBM4u57bMi5Vj2XJc": {
+    "name": "Solana",
+    "image": "https://pbs.twimg.com/profile_images/1299400345144049665/sPxnVXa7_400x400.jpg",
+    "description": "Account used by Solana to mint official NFTs.",
+    "background": ""
+
   }
 }

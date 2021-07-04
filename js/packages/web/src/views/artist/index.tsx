@@ -29,7 +29,9 @@ export const ArtistView = () => {
             const id = m.pubkey.toBase58();
             return (
               <Link to={`/art/${id}`} key={idx}>
-                <ArtCard key={id} pubkey={m.pubkey} preview={false} />
+                <ArtCard key={id} pubkey={m.pubkey} preview={false}
+                  height={250}
+                  width={250} />
               </Link>
             );
           })

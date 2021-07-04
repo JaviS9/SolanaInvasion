@@ -3,6 +3,7 @@ import {
   programIds,
   METADATA,
   AccountParser,
+  findProgramAddress,
 } from '@oyster/common';
 import { AccountInfo, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -157,6 +158,10 @@ export class SetWhitelistedCreatorArgs {
 
 export class ValidateParticipationArgs {
   instruction = 10;
+}
+
+export class DecommissionAuctionManagerArgs {
+  instruction = 13;
 }
 
 export enum WinningConstraint {
@@ -337,6 +342,14 @@ export class Store {
   }
 }
 
+export enum AuctionManagerStatus {
+  Initialized,
+  Validated,
+  Running,
+  Disbursing,
+  Finished,
+}
+
 export class AuctionManagerState {
   status: AuctionManagerStatus = AuctionManagerStatus.Initialized;
   winningConfigItemsValidated: number = 0;
@@ -348,14 +361,6 @@ export class AuctionManagerState {
   constructor(args?: AuctionManagerState) {
     Object.assign(this, args);
   }
-}
-
-export enum AuctionManagerStatus {
-  Initialized,
-  Validated,
-  Running,
-  Disbursing,
-  Finished,
 }
 
 export class BidRedemptionTicket {
@@ -538,6 +543,13 @@ export const SCHEMA = new Map<any, any>([
     },
   ],
   [
+    DecommissionAuctionManagerArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
     InitAuctionManagerArgs,
     {
       kind: 'struct',
@@ -637,7 +649,7 @@ export async function getAuctionManagerKey(
   const PROGRAM_IDS = programIds();
 
   return (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [Buffer.from(METAPLEX_PREFIX), auctionKey.toBuffer()],
       PROGRAM_IDS.metaplex,
     )
@@ -650,7 +662,7 @@ export async function getAuctionKeys(
   const PROGRAM_IDS = programIds();
 
   const auctionKey: PublicKey = (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(AUCTION_PREFIX),
         PROGRAM_IDS.auction.toBuffer(),
@@ -672,7 +684,7 @@ export async function getBidderKeys(
   const PROGRAM_IDS = programIds();
 
   const bidMetadata: PublicKey = (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(AUCTION_PREFIX),
         PROGRAM_IDS.auction.toBuffer(),
@@ -685,7 +697,7 @@ export async function getBidderKeys(
   )[0];
 
   const bidRedemption: PublicKey = (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
         auctionKey.toBuffer(),
@@ -705,7 +717,7 @@ export async function getOriginalAuthority(
   const PROGRAM_IDS = programIds();
 
   return (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
         auctionKey.toBuffer(),
@@ -724,7 +736,7 @@ export async function getWhitelistedCreator(creator: PublicKey) {
   }
 
   return (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
         PROGRAM_IDS.metaplex.toBuffer(),
@@ -742,7 +754,7 @@ export async function getSafetyDepositBoxValidationTicket(
 ) {
   const PROGRAM_IDS = programIds();
   return (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
         PROGRAM_IDS.metaplex.toBuffer(),
@@ -765,7 +777,7 @@ export async function getPayoutTicket(
   const PROGRAM_IDS = programIds();
 
   return (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
         auctionManager.toBuffer(),

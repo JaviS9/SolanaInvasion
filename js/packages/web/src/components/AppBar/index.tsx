@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import './index.less';
 import { Link } from 'react-router-dom';
 import { Button, Dropdown, Menu } from 'antd';
-import { ConnectButton, CurrentUserBadge, useConnection, useWallet } from '@oyster/common';
+import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
 import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
@@ -26,9 +26,9 @@ const UserActions = () => {
       {/* <Link to={`#`}>
         <Button className="app-btn">Bids</Button>
       </Link> */}
-      {canCreate && (<Link to={`/art/create`}>
+      {canCreate ? (<Link to={`/art/create`}>
         <Button className="app-btn">Create</Button>
-      </Link>)}
+      </Link>) : null}
       <Link to={`/auction/create/0`}>
         <Button className="connector" type="primary" >Sell</Button>
       </Link>

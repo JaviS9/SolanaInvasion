@@ -116,6 +116,8 @@ fn create_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                 token_mint: mint.pubkey(),
                 winners: WinnerLimit::Capped(5),
                 price_floor: floor.unwrap_or(PriceFloor::None([0; 32])),
+                gap_tick_size_percentage: Some(0),
+                tick_size: Some(0),
             },
         ),
     ];
@@ -563,7 +565,7 @@ fn main() {
                 .takes_value(true)
                 .global(true)
                 .validator(is_url)
-                .help("JSON RPC URL for the cluster [default: devnet]"),
+                .help("JSON RPC URL for the cluster [default: testnet]"),
         )
         .subcommand(
             SubCommand::with_name("create")
@@ -1085,7 +1087,7 @@ fn main() {
     let client = RpcClient::new(
         app_matches
             .value_of("json_rpc_url")
-            .unwrap_or(&"https://testnet.solana.com".to_owned())
+            .unwrap_or(&"https://api.testnet.solana.com".to_owned())
             .to_owned(),
     );
 

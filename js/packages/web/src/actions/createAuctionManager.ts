@@ -8,7 +8,6 @@ import {
   actions,
   Metadata,
   ParsedAccount,
-  WinnerLimit,
   MasterEdition,
   SequenceType,
   sendTransactions,
@@ -20,7 +19,8 @@ import {
   getSafetyDepositBoxAddress,
   createAssociatedTokenAccountInstruction,
   sendTransactionWithRetry,
-  PriceFloor,
+  findProgramAddress,
+  IPartialCreateAuctionArgs,
 } from '@oyster/common';
 
 import { AccountLayout, Token } from '@solana/spl-token';
@@ -48,6 +48,7 @@ import { createExternalPriceAccount } from './createExternalPriceAccount';
 import { validateParticipation } from '../models/metaplex/validateParticipation';
 import { createReservationListForTokens } from './createReservationListsForTokens';
 import { populatePrintingTokens } from './populatePrintingTokens';
+import { setVaultAndAuctionAuthorities } from './setVaultAndAuctionAuthorities';
 const { createTokenAccount } = actions;
 
 interface normalPattern {
@@ -72,6 +73,7 @@ interface byType {
   makeAuction: normalPattern;
   initAuctionManager: normalPattern;
   startAuction: normalPattern;
+  setVaultAndAuctionAuthorities: normalPattern;
   externalPriceAccount: normalPattern;
   validateParticipation?: normalPattern;
   buildAndPopulateOneTimeAuthorizationAccount?: normalPattern;
@@ -99,13 +101,10 @@ export async function createAuctionManager(
     ParsedAccount<WhitelistedCreator>
   >,
   settings: AuctionManagerSettings,
-  winnerLimit: WinnerLimit,
-  endAuctionAt: BN,
-  auctionGap: BN,
+  auctionSettings: IPartialCreateAuctionArgs,
   safetyDepositDrafts: SafetyDepositDraft[],
   participationSafetyDepositDraft: SafetyDepositDraft | undefined,
   paymentMint: PublicKey,
-  priceFloor: PriceFloor,
 ): Promise<{
   vault: PublicKey;
   auction: PublicKey;
@@ -135,15 +134,7 @@ export async function createAuctionManager(
     instructions: makeAuctionInstructions,
     signers: makeAuctionSigners,
     auction,
-  } = await makeAuction(
-    wallet,
-    winnerLimit,
-    vault,
-    endAuctionAt,
-    auctionGap,
-    paymentMint,
-    priceFloor,
-  );
+  } = await makeAuction(wallet, vault, auctionSettings);
 
   let safetyDepositConfigsWithPotentiallyUnsetTokens =
     await buildSafetyDepositArray(
@@ -225,6 +216,12 @@ export async function createAuctionManager(
       instructions: auctionManagerInstructions,
       signers: auctionManagerSigners,
     },
+    setVaultAndAuctionAuthorities: await setVaultAndAuctionAuthorities(
+      wallet,
+      vault,
+      auction,
+      auctionManager,
+    ),
     startAuction: await setupStartAuction(wallet, vault),
     validateParticipation: participationSafetyDepositDraft
       ? await validateParticipationHelper(
@@ -275,6 +272,7 @@ export async function createAuctionManager(
     lookup.closeVault.signers,
     lookup.makeAuction.signers,
     lookup.initAuctionManager.signers,
+    lookup.setVaultAndAuctionAuthorities.signers,
     lookup.validateParticipation?.signers || [],
     ...lookup.validateBoxes.signers,
     lookup.startAuction.signers,
@@ -290,6 +288,7 @@ export async function createAuctionManager(
     lookup.closeVault.instructions,
     lookup.makeAuction.instructions,
     lookup.initAuctionManager.instructions,
+    lookup.setVaultAndAuctionAuthorities.instructions,
     lookup.validateParticipation?.instructions || [],
     ...lookup.validateBoxes.instructions,
     lookup.startAuction.instructions,
@@ -409,7 +408,7 @@ async function buildSafetyDepositArray(
   ) {
     safetyDepositConfig.push({
       tokenAccount: (
-        await PublicKey.findProgramAddress(
+        await findProgramAddress(
           [
             wallet.publicKey.toBuffer(),
             programIds().token.toBuffer(),
@@ -670,7 +669,7 @@ async function buildAndPopulateOneTimeAuthorizationAccount(
   let signers: Keypair[] = [];
   let instructions: TransactionInstruction[] = [];
   const recipientKey: PublicKey = (
-    await PublicKey.findProgramAddress(
+    await findProgramAddress(
       [
         wallet.publicKey.toBuffer(),
         programIds().token.toBuffer(),

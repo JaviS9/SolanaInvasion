@@ -6,11 +6,11 @@ import {
   useAuction,
   AuctionView,
   useBidsForAuction,
+  useUserBalance,
 } from '../../hooks';
 import { ArtContent } from '../../components/ArtContent';
 import {
   useConnection,
-  useUserAccounts,
   contexts,
   BidderMetadata,
   ParsedAccount,
@@ -18,10 +18,10 @@ import {
   BidderPot,
   fromLamports,
   useMint,
-  shortenAddress,
   getBidderPotKey,
   programIds,
   Bid,
+  useUserAccounts,
 } from '@oyster/common';
 import { useMeta } from '../../contexts';
 import {
@@ -116,7 +116,6 @@ function useWinnerPotsByBidderKey(
         return agg;
       }, {} as Record<string, ParsedAccount<BidderPot>>);
 
-      console.log('Final keys', Object.keys(newPots));
       setPots(newPots);
     })();
   }, [truWinners, setPots]);
@@ -227,37 +226,13 @@ function usePayoutTickets(
   );
 }
 
-export const InnerBillingView = ({
-  auctionView,
-  wallet,
-  connection,
-  mint,
-}: {
-  auctionView: AuctionView;
-  wallet: WalletAdapter;
-  connection: Connection;
-  mint: MintInfo;
-}) => {
+export function useBillingInfo({ auctionView }: { auctionView: AuctionView }) {
   const {
     bidRedemptions,
     bidderMetadataByAuctionAndBidder,
     bidderPotsByAuctionAndBidder,
-    whitelistedCreatorsByCreator,
   } = useMeta();
-  const art = useArt(auctionView.thumbnail.metadata.pubkey);
-  const [escrowBalance, setEscrowBalance] = useState<number | undefined>();
-  const [escrowBalanceRefreshCounter, setEscrowBalanceRefreshCounter] =
-    useState(0);
   const auctionKey = auctionView.auction.pubkey.toBase58();
-
-  useEffect(() => {
-    connection
-      .getTokenAccountBalance(auctionView.auctionManager.info.acceptPayment)
-      .then(resp => {
-        if (resp.value.uiAmount !== undefined && resp.value.uiAmount !== null)
-          setEscrowBalance(resp.value.uiAmount);
-      });
-  }, [escrowBalanceRefreshCounter]);
 
   const [participationBidRedemptionKeys, setParticipationBidRedemptionKeys] =
     useState<Record<string, PublicKey>>({});
@@ -318,7 +293,6 @@ export const InnerBillingView = ({
     auctionView.auctionManager.info.settings.participationConfig
       ?.nonWinningConstraint;
 
-  const participationEligibleRedeemable: ParsedAccount<BidderMetadata>[] = [];
   const participationEligibleUnredeemable: ParsedAccount<BidderMetadata>[] = [];
 
   participationEligible.forEach(o => {
@@ -377,14 +351,61 @@ export const InnerBillingView = ({
         ],
       pot,
     })),
-    ...participationEligibleRedeemable.map(metadata => ({
-      metadata,
-      pot: bidderPotsByAuctionAndBidder[
-        `${auctionKey}-${metadata.info.bidderPubkey.toBase58()}`
-      ],
-    })),
   ];
 
+  return {
+    bidsToClaim,
+    totalWinnerPayments,
+    payoutTickets,
+    participationEligible,
+    participationPossibleTotal,
+    participationUnredeemedTotal,
+    hasParticipation,
+  };
+}
+
+export const InnerBillingView = ({
+  auctionView,
+  wallet,
+  connection,
+  mint,
+}: {
+  auctionView: AuctionView;
+  wallet: WalletAdapter;
+  connection: Connection;
+  mint: MintInfo;
+}) => {
+  const id = auctionView.thumbnail.metadata.pubkey;
+  const art = useArt(id);
+  const balance = useUserBalance(auctionView.auction.info.tokenMint);
+  const [escrowBalance, setEscrowBalance] = useState<number | undefined>();
+  const { whitelistedCreatorsByCreator } = useMeta();
+  const [escrowBalanceRefreshCounter, setEscrowBalanceRefreshCounter] =
+    useState(0);
+
+  useEffect(() => {
+    connection
+      .getTokenAccountBalance(auctionView.auctionManager.info.acceptPayment)
+      .then(resp => {
+        if (resp.value.uiAmount !== undefined && resp.value.uiAmount !== null)
+          setEscrowBalance(resp.value.uiAmount);
+      });
+  }, [escrowBalanceRefreshCounter]);
+
+  const myPayingAccount = balance.accounts[0];
+
+  const { accountByMint } = useUserAccounts();
+
+  const {
+    bidsToClaim,
+    totalWinnerPayments,
+    payoutTickets,
+    participationPossibleTotal,
+    participationUnredeemedTotal,
+    hasParticipation,
+  } = useBillingInfo({
+    auctionView,
+  });
   return (
     <Content>
       <Col>
@@ -393,11 +414,9 @@ export const InnerBillingView = ({
         >
           <Col span={12}>
             <ArtContent
-              category={art.category}
-              uri={art.image}
-              extension={art.image}
-              files={art.files}
+              pubkey={id}
               className="artwork-image"
+              allowMeshRender={true}
             />
           </Col>
           <Col span={12}>
@@ -476,6 +495,8 @@ export const InnerBillingView = ({
                   wallet,
                   auctionView,
                   bidsToClaim.map(b => b.pot),
+                  myPayingAccount.pubkey,
+                  accountByMint,
                 );
                 setEscrowBalanceRefreshCounter(ctr => ctr + 1);
               }}
