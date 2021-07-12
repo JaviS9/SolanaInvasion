@@ -2852,6 +2852,13 @@
   resolved "https://registry.yarnpkg.com/@sheerun/mutationobserver-shim/-/mutationobserver-shim-0.3.3.tgz#5405ee8e444ed212db44e79351f0c70a582aae25"
   integrity sha512-DetpxZw1fzPD5xUBrIAoplLChO2VB8DlL5Gg+I1IR9b2wPqYIca2WSUxL5g1vLeR4MsQq1NeWriXAVffV+U1Fw==
 
+"@solana/buffer-layout@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@solana/buffer-layout/-/buffer-layout-3.0.0.tgz#b9353caeb9a1589cb77a1b145bcb1a9a93114326"
+  integrity sha512-MVdgAKKL39tEs0l8je0hKaXLQFb7Rdfb0Xg2LjFZd8Lfdazkg6xiS98uAZrEKvaoF3i4M95ei9RydkGIDMeo3w==
+  dependencies:
+    buffer "~6.0.3"
+
 "@solana/spl-name-service@0.1.2":
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/@solana/spl-name-service/-/spl-name-service-0.1.2.tgz#d49240a692bbf05ef56d79db0916b17a4829b99d"
@@ -2972,7 +2979,7 @@
     tweetnacl "^1.0.0"
     ws "^7.0.0"
 
-"@solana/web3.js@^1.10.0", "@solana/web3.js@^1.11.0", "@solana/web3.js@^1.9.1":
+"@solana/web3.js@^1.11.0", "@solana/web3.js@^1.9.1":
   version "1.15.0"
   resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.15.0.tgz#e90f928f4e270fddbe89e83210d54f757128a306"
   integrity sha512-q9GWL6ayHbEljzp2l5bdz46618h28KJ07H0m1pL2p/LRF+Jh9x5X/FME87La4/6lVrsSyymSaKnn+loiTTqB7w==
@@ -2983,6 +2990,26 @@
     bs58 "^4.0.1"
     buffer "6.0.1"
     buffer-layout "^1.2.0"
+    crypto-hash "^1.2.2"
+    jayson "^3.4.4"
+    js-sha3 "^0.8.0"
+    node-fetch "^2.6.1"
+    rpc-websockets "^7.4.2"
+    secp256k1 "^4.0.2"
+    superstruct "^0.14.2"
+    tweetnacl "^1.0.0"
+
+"@solana/web3.js@^1.20.2":
+  version "1.20.2"
+  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.20.2.tgz#accaec39572563024f2d08c2721e081d705d957c"
+  integrity sha512-ndde6LPIO9l+3s5f9kbkUO84pbj1QYyiQf76la4g5jrKCCMQlq/cPCN3pt0iv6yFI0MX4778yZx/bGwgQioEuw==
+  dependencies:
+    "@babel/runtime" "^7.12.5"
+    "@solana/buffer-layout" "^3.0.0"
+    bn.js "^5.0.0"
+    borsh "^0.4.0"
+    bs58 "^4.0.1"
+    buffer "6.0.1"
     crypto-hash "^1.2.2"
     jayson "^3.4.4"
     js-sha3 "^0.8.0"
@@ -5863,7 +5890,7 @@ buffer@6.0.1:
     base64-js "^1.3.1"
     ieee754 "^1.2.1"
 
-buffer@6.0.3, buffer@^6.0.1:
+buffer@6.0.3, buffer@^6.0.1, buffer@~6.0.3:
   version "6.0.3"
   resolved "https://registry.yarnpkg.com/buffer/-/buffer-6.0.3.tgz#2ace578459cc8fbe2a70aaa8f52ee63b6a74c6c6"
   integrity sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==

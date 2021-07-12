@@ -430,15 +430,23 @@ export function AccountsProvider({ children = null as any }) {
         setTokenAccounts(selectUserAccounts());
       });
 
-      // This can return different types of accounts: token-account, mint, multisig
-      // TODO: web3.js expose ability to filter.
-      // this should use only filter syntax to only get accounts that are owned by user
+      const filter = [
+        {
+          dataSize: AccountLayout.span,
+        },
+        {
+          memcmp: {
+            offset: 64,
+            bytes: publicKey.toBase58()
+          }
+        }
+      ];
+
       const tokenSubID = connection.onProgramAccountChange(
         programIds().token,
         info => {
           // TODO: fix type in web3.js
           const id = info.accountId as unknown as string;
-          // TODO: do we need a better way to identify layout (maybe a enum identifing type?)
           if (info.accountInfo.data.length === AccountLayout.span) {
             const data = deserializeAccount(info.accountInfo.data);
 
@@ -449,6 +457,7 @@ export function AccountsProvider({ children = null as any }) {
           }
         },
         'singleGossip',
+        filter
       );
 
       return () => {
