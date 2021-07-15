@@ -75,7 +75,7 @@ export const AuctionRenderCard = (props: AuctionCard) => {
       cover={
         <>
           <ArtContent
-            className="auction-image no-events"
+            className="no-events"
             preview={false}
 
             pubkey={id}
