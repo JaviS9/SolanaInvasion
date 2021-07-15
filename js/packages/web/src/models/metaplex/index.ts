@@ -308,6 +308,7 @@ export class WhitelistedCreator {
 
   // Populated from name service
   twitter?: string;
+  background?: string;
   name?: string;
   image?: string;
   description?: string;

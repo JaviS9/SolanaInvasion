@@ -1,21 +1,21 @@
 {
-  "name": "Metaplex NFT Marketplace",
-  "short_name": "Metaplex NFT Marketplace",
+  "name": "Topps NFT Marketplace",
+  "short_name": "Topps NFT Marketplace",
   "display": "standalone",
   "start_url": "./",
   "theme_color": "#002140",
   "background_color": "#001529",
   "icons": [
     {
-      "src": "icons/icon-192x192.png",
+      "src": "https://media.wax.io/QmRwnTUr2y42YkTGQhA9ZxTfnW3j74oGLc6okBBivn6tav/favicon.png/192x192",
       "sizes": "192x192"
     },
     {
-      "src": "icons/icon-128x128.png",
+      "src": "https://media.wax.io/QmRwnTUr2y42YkTGQhA9ZxTfnW3j74oGLc6okBBivn6tav/favicon.png/128x128",
       "sizes": "128x128"
     },
     {
-      "src": "icons/icon-512x512.png",
+      "src": "https://media.wax.io/QmRwnTUr2y42YkTGQhA9ZxTfnW3j74oGLc6okBBivn6tav/favicon.png/512x512",
       "sizes": "512x512"
     }
   ]

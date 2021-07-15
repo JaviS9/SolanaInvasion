@@ -694,6 +694,7 @@ const processMetaplexAccounts = async (
         if (nameInfo) {
           account.info.name = nameInfo.name;
           account.info.description = nameInfo.description;
+          account.info.background = nameInfo.background;
           account.info.image = nameInfo.image;
           account.info.twitter = nameInfo.twitter;
         }

@@ -13,6 +13,7 @@ export interface Artist {
   name: string;
   link: string;
   image: string;
+  background: string;
   itemsAvailable?: number;
   itemsSold?: number;
   about?: string;
