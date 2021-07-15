@@ -299,7 +299,7 @@ export const AuctionCard = ({
           }}
         >
           Your bid has been redeemed please view your NFTs in{' '}
-          <Link to="/artworks">My Items</Link>.
+          <Link to="/cards">My Items</Link>.
         </p>
         <Button
           onClick={() => setShowRedeemedBidModal(false)}

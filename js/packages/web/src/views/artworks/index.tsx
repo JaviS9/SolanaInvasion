@@ -32,14 +32,14 @@ export const ArtworksView = () => {
   };
 
   const items =
-    (activeKey === ArtworkViewState.Owned
+    activeKey === ArtworkViewState.Owned
       ? ownedMetadata.map(m => m.metadata)
-      : (activeKey === ArtworkViewState.Created 
-        ? createdMetadata 
-        : metadata));
+      : activeKey === ArtworkViewState.Created
+      ? createdMetadata
+      : metadata;
 
   useEffect(() => {
-    if(connected) {
+    if (connected) {
       setActiveKey(ArtworkViewState.Owned);
     } else {
       setActiveKey(ArtworkViewState.Metaplex);
@@ -56,7 +56,7 @@ export const ArtworksView = () => {
         ? items.map((m, idx) => {
             const id = m.pubkey.toBase58();
             return (
-              <Link to={`/art/${id}`} key={idx}>
+              <Link to={`/card/${id}`} key={idx}>
                 <ArtCard
                   key={id}
                   pubkey={m.pubkey}

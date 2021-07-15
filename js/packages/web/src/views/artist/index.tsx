@@ -27,7 +27,7 @@ export const ArtistView = () => {
         ? artwork.map((m, idx) => {
             const id = m.pubkey.toBase58();
             return (
-              <Link to={`/art/${id}`} key={idx}>
+              <Link to={`/card/${id}`} key={idx}>
                 <ArtCard key={id} pubkey={m.pubkey} preview={false} />
               </Link>
             );
@@ -49,10 +49,10 @@ export const ArtistView = () => {
               {creator?.info.name || creator?.info.address.toBase58()}
             </h2>
             <br />
-            <div className="info-header">ABOUT THE CREATOR</div>
+            <div className="info-header">THE TEAM</div>
             <div className="info-content">{creator?.info.description}</div>
             <br />
-            <div className="info-header">Art Created</div>
+            <div className="info-header">Cards</div>
             {artworkGrid}
           </Col>
         </Row>

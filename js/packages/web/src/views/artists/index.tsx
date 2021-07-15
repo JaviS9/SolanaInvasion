@@ -16,7 +16,11 @@ export const ArtistsView = () => {
     500: 1,
   };
 
-  const items = Object.values(whitelistedCreatorsByCreator);
+  const items = Object.values(whitelistedCreatorsByCreator).filter(
+    c =>
+      c.info.address.toBase58() !=
+      '2fatjmytZu5eDoiHjn9Q5sshy2YCobarML9nN7Sx2htr',
+  );
 
   const artistGrid = (
     <Masonry
@@ -27,13 +31,16 @@ export const ArtistsView = () => {
       {items.map((m, idx) => {
         const id = m.info.address.toBase58();
         return (
-          <Link to={`/artists/${id}`} key={idx}>
-            <ArtistCard key={id} artist={{
-              address: m.info.address.toBase58(),
-              name: m.info.name || '',
-              image: m.info.image || '',
-              link: m.info.twitter || ''
-            }} />
+          <Link to={`/teams/${id}`} key={idx}>
+            <ArtistCard
+              key={id}
+              artist={{
+                address: m.info.address.toBase58(),
+                name: m.info.name || '',
+                image: m.info.image || '',
+                link: m.info.twitter || '',
+              }}
+            />
           </Link>
         );
       })}
@@ -43,9 +50,7 @@ export const ArtistsView = () => {
   return (
     <Layout style={{ margin: 0, marginTop: 30 }}>
       <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <Col style={{ width: '100%', marginTop: 10 }}>
-          {artistGrid}
-        </Col>
+        <Col style={{ width: '100%', marginTop: 10 }}>{artistGrid}</Col>
       </Content>
     </Layout>
   );

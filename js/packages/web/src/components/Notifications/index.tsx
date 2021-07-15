@@ -394,7 +394,7 @@ export function Notifications() {
           {whitelistedCreatorsByCreator[m.info.updateAuthority.toBase58()]?.info
             ?.name || m.pubkey.toBase58()}{' '}
           wants you to approve that you helped create their art{' '}
-          <Link to={`/art/${m.pubkey.toBase58()}`}>here.</Link>
+          <Link to={`/card/${m.pubkey.toBase58()}`}>here.</Link>
         </span>
       ),
       action: async () => {
@@ -457,7 +457,8 @@ export function Notifications() {
       content={content}
       trigger="click"
     >
-      <h1 className="title">M</h1>
+      <img src="logo.svg" width={50} height={50} />
+      &nbsp;&nbsp;
     </Popover>
   );
 
