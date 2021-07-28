@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Col, Button, InputNumber, Spin } from 'antd';
 import { MemoryRouter, Route, Redirect, Link } from 'react-router-dom';
+import { RampInstantSDK } from '@ramp-network/ramp-instant-sdk';
 
 import {
   useConnection,
@@ -645,6 +646,34 @@ export const AuctionCard = ({
                 }}
               >
                 Back
+              </Button>
+              <Button
+                onClick={() => {
+                  new RampInstantSDK({
+                    hostAppName: 'Metaplex',
+                    hostLogoUrl: 'https://www.metaplex.com/icons/icon-96x96.png?v=2f3d06152be8fb673d6c01a8884bfa58',
+                    swapAsset: 'SOLANA_SOL',
+                    userAddress: wallet?.publicKey?.toBase58(),
+                    url: 'https://ri-widget-staging.firebaseapp.com/', // only specify the url if you want to use testnet widget versions,
+                    // use variant: 'auto' for automatic mobile / desktop handling,
+                    // 'hosted-auto' for automatic mobile / desktop handling in new window,
+                    // 'mobile' to force mobile version
+                    // 'desktop' to force desktop version (default)
+                    variant: 'auto',
+                  })
+                    .on('*', console.log)
+                    .show();
+                }}
+                style={{
+                  background: 'black',
+                  borderRadius: 14,
+                  width: '68%',
+                  marginLeft: '2%',
+                  padding: 10,
+                  height: 'auto',
+                  borderColor: 'black',
+                }}>
+                RAMP
               </Button>
               <Button
                 onClick={() => {
