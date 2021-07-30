@@ -654,7 +654,9 @@ export const AuctionCard = ({
                     hostLogoUrl: 'https://www.metaplex.com/icons/icon-96x96.png?v=2f3d06152be8fb673d6c01a8884bfa58',
                     swapAsset: 'SOLANA_SOL',
                     userAddress: wallet?.publicKey?.toBase58(),
-                    url: 'https://ri-widget-staging.firebaseapp.com/', // only specify the url if you want to use testnet widget versions,
+                    // TODO:
+                    // customize based on network, staging: https://ri-widget-staging.firebaseapp.com/
+                    url: 'https://ri-widget.firebaseapp.com/', // only specify the url if you want to use testnet widget versions,
                     // use variant: 'auto' for automatic mobile / desktop handling,
                     // 'hosted-auto' for automatic mobile / desktop handling in new window,
                     // 'mobile' to force mobile version
