@@ -39,7 +39,7 @@ export default class MetaplexDocument extends Document {
             sizes="16x16"
             href="/favicon-16x16.png"
           />
-          <meta name="theme-color" content="#000000" />
+          <meta name="theme-color" content="#53A94A" />
           <meta name="description" content="Solana Invasion" />
           <link rel="manifest" href="/manifest.json" />
           <link
