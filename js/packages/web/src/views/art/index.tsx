@@ -8,7 +8,7 @@ import { shortenAddress, useConnection } from '@oyster/common';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { MetaAvatar } from '../../components/MetaAvatar';
 import { sendSignMetadata } from '../../actions/sendSignMetadata';
-import { ViewOn } from './../../components/ViewOn';
+import { ViewOn } from '../../components/ViewOn';
 import { ArtType } from '../../types';
 
 const { Content } = Layout;

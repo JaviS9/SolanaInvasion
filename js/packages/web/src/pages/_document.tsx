@@ -25,19 +25,19 @@ export default class MetaplexDocument extends Document {
             rel="icon"
             type="image/png"
             sizes="32x32"
-            href="/favicon-32x32.png"
+            href="/solanaInvasion.png"
           />
           <link
             rel="icon"
             type="image/png"
             sizes="96x96"
-            href="/favicon-96x96.png"
+            href="/SolanaInvasion.png"
           />
           <link
             rel="icon"
             type="image/png"
             sizes="16x16"
-            href="/favicon-16x16.png"
+            href="/SolanaInvasion.png"
           />
           <meta name="theme-color" content="#53A94A" />
           <meta name="description" content="Solana Invasion" />
